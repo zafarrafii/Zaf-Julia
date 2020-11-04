@@ -3,6 +3,7 @@
 Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION).
 
 - [`zaf.py`](#zafpy): Julia module with the audio functions.
+- [`examples.ipynb`](#examplesipynb): Jupyter module with some examples.
 - [`audio_file.wav`](#audio_filewav): audio file used for the examples.
 
 ## zaf.py
@@ -31,6 +32,13 @@ Other:
 
 
 ### Short-time Fourier transform (STFT)
+
+
+## examples.ipynb
+
+This Jupyter notebook shows some examples for the different functions of the Julia module `zaf`.
+
+See [Jupyter notebook viewer](https://nbviewer.jupyter.org/github/zafarrafii/Zaf-Julia/blob/master/examples.ipynb).
 
 
 ## audio_file.wav
