@@ -1,6 +1,6 @@
 # Zaf-Julia
 
-Zafar's Audio Functions in Julia for audio signal analysis.
+Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION).
 
 - [`zaf.py`](#zafpy): Julia module with the audio functions.
 - [`audio_file.wav`](#audio_filewav): audio file used for the examples.
