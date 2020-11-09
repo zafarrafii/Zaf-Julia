@@ -1,7 +1,7 @@
 """
 This Julia module implements a number of functions for audio signal analysis.
 
-Functions:
+# Functions:
     stft - Short-time Fourier transform (STFT)
     istft - inverse STFT
     cqtkernel - Constant-Q transform (CQT) kernel
@@ -13,7 +13,7 @@ Functions:
     mdct - Modified discrete cosine transform (MDCT) using the FFT
     imdct - Inverse MDCT using the FFT
 
-Other:
+# Other:
     wavread - Read a WAVE file (using Scipy)
     wavwrite - Write a WAVE file (using Scipy)
     sigplot - Plot an audio signal in seconds
@@ -21,33 +21,32 @@ Other:
     cqtspecshow - Display a CQT audio spectrogram in dB, seconds, and Hz
     cqtchromshow - Display a CQT audio chromagram in seconds
 
-Author:
+# Author:
     Zafar Rafii
     zafarrafii@gmail.com
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/04/20
+    11/09/20
 """
-
 module zaf
 
 export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
 
 """
-    audio_stft = z.stft(audio_signal, window_function, step_length);
+    audio_stft = zaf.stft(audio_signal, window_function, step_length);
 
-Compute the short-time Fourier transform (STFT)
+Compute the short-time Fourier transform (STFT).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, 1]
-- `window_function::Float`: the window function [window_length, 1]
-- `step_length::Integer`: the step length in samples
-- `audio_stft::Complex`: the audio STFT [window_length, number_frames]
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `window_function::Float`: the window function (window_length,).
+- `step_length::Integer`: the step length in samples.
+- `audio_stft::Complex`: the audio STFT (window_length, number_frames).
 
-# Example: Compute the spectrogram of an audio file
-```
+# Example: Compute the spectrogram from an audio file
+```jldoctest
 # Audio signal averaged over its channels and sample rate in Hz
 Pkg.add("WAV")
 using WAV
@@ -494,7 +493,7 @@ function mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
     # Indices of the overlapping filters (linearly spaced in the mel scale and logarithmically spaced in the linear scale)
     filter_width = 2*(maximum_melfrequency-mininum_melfrequency)/(number_filters+1);
     filter_indices = mininum_melfrequency:filter_width/2:maximum_melfrequency;
-    filter_indices = round.(Int64, 700*(10.^(filter_indices/2595)-1)*window_length/sample_rate);
+    filter_indices = round.(Int64, 700*(10^(filter_indices/2595)-1)*window_length/sample_rate);
 
     # Initialize the filter bank
     filter_bank = zeros(number_filters, convert(Int64, window_length/2));
