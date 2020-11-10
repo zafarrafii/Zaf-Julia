@@ -14,6 +14,7 @@ This Julia module implements a number of functions for audio signal analysis.
     imdct - Inverse MDCT using the FFT
 
 # Other:
+    hamming - ...
     wavread - Read a WAVE file (using Scipy)
     wavwrite - Write a WAVE file (using Scipy)
     sigplot - Plot an audio signal in seconds
@@ -27,9 +28,11 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/09/20
+    11/10/20
 """
 module zaf
+
+using FFTW
 
 export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
@@ -40,43 +43,14 @@ mdct, imdct
 Compute the short-time Fourier transform (STFT).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal (number_samples,).
+-  `audio_signal::Float`: the audio signal (number_samples,).
 - `window_function::Float`: the window function (window_length,).
 - `step_length::Integer`: the step length in samples.
 - `audio_stft::Complex`: the audio STFT (window_length, number_frames).
 
 # Example: Compute the spectrogram from an audio file
-```jldoctest
-# Audio signal averaged over its channels and sample rate in Hz
-Pkg.add("WAV")
-using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
-
-# Window duration in seconds (audio is stationary around 40 milliseconds)
-window_duration = 0.04;
-
-# Window length in samples (power of 2 for fast FFT and constant overlap-add (COLA))
-window_length = nextpow2(ceil(Int64, window_duration*sample_rate));
-
-# Window function (periodic Hamming window for COLA)
-include("z.jl")
-window_function = z.hamming(window_length, "periodic");
-
-# Step length in samples (half the window length for COLA)
-step_length = convert(Int64, window_length/2);
-
-# Magnitude spectrogram (without the DC component and the mirrored frequencies)
-audio_stft = z.stft(audio_signal, window_function, step_length);
-audio_spectrogram = abs.(audio_stft[2:convert(Int64, window_length/2)+1,:]);
-
-# Spectrogram displayed in dB, s, and kHz
-Pkg.add("Plots")
-using Plots
-plotly()
-x_labels = [string(round(i*step_length/sample_rate, 2)) for i = 1:size(audio_spectrogram, 2)];
-y_labels = [string(round(i*sample_rate/window_length/1000, 2)) for i = 1:size(audio_spectrogram, 1)];
-heatmap(x_labels, y_labels, 20*log10.(audio_spectrogram))
+```
+lala
 ```
 """
 function stft(audio_signal, window_function, step_length)
@@ -85,26 +59,30 @@ function stft(audio_signal, window_function, step_length)
     number_samples = length(audio_signal)
     window_length = length(window_function)
 
-    # Number of time number_frames
-    number_times = ceil(Int64, (window_length-step_length+number_samples)/step_length)
+    # Derive the zero-padding length at the start and at the end of the signal to center the windows
+    padding_length = floor(Int, window_length / 2)
 
-    # Zero-padding at the start and end to center the windows
-    audio_signal = [zeros(window_length-step_length,1); audio_signal;
-    zeros(number_times*step_length-number_samples,1)]
+    # Compute the number of time frames given the zero-padding at the start and at the end of the signal
+    number_times = ceil(Int, ((number_samples + 2 * padding_length) - window_length) / step_length) + 1
+
+    # Zero-pad the start and the end of the signal to center the windows
+    audio_signal = [zeros(padding_length); audio_signal;
+    zeros((number_times * step_length + (window_length - step_length) - padding_length) - number_samples)]
 
     # Initialize the STFT
     audio_stft = zeros(window_length, number_times)
 
     # Loop over the time frames
-    for time_index = 1:number_times
+    i = 0
+    for j = 1:number_times
 
         # Window the signal
-        sample_index = step_length*(time_index-1)
-        audio_stft[:, time_index] = audio_signal[1+sample_index:window_length+sample_index].*window_function
+        audio_stft[:, j] = audio_signal[i + 1 : i + window_length] .* window_function
+        i = i + step_length
 
     end
 
-    # Fourier transform of the frames
+    # Compute the Fourier transform of the frames using the FFT
     audio_stft = fft(audio_stft, 1)
 
 end
@@ -937,9 +915,9 @@ end
 function hamming(window_length, window_sampling="symmetric")
 
     if window_sampling == "symmetric"
-        window_function = 0.54 - 0.46*cos.(2*pi*(0:window_length-1)/(window_length-1));
+        window_function = 0.54 .- 0.46*cos.(2*pi*(0:window_length-1)/(window_length-1));
     elseif window_sampling == "periodic"
-        window_function = 0.54 - 0.46*cos.(2*pi*(0:window_length-1)/window_length);
+        window_function = 0.54 .- 0.46*cos.(2*pi*(0:window_length-1)/window_length);
     end
 
 end
