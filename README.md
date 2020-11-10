@@ -1,10 +1,13 @@
 # Zaf-Julia
 
-Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION). Make sure to have FFTW, ...
-
+Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION).
 - [`zaf.py`](#zafpy): Julia module with the audio functions.
 - [`examples.ipynb`](#examplesipynb): Jupyter module with some examples.
 - [`audio_file.wav`](#audio_filewav): audio file used for the examples.
+
+Make sure to have the following packages installed:
+- [WAV](https://juliapackages.com/p/wav)
+- [FFTW](https://juliapackages.com/p/fftw)
 
 ## zaf.py
 
