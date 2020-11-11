@@ -28,11 +28,11 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/10/20
+    11/11/20
 """
 module zaf
 
-using FFTW
+using FFTW, Plots
 
 export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
@@ -930,6 +930,47 @@ function kaiser(window_length, alpha_value)
         window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1).^2));
     end
     window_function = window_function/besseli(0, alpha_value);
+
+end
+
+"""
+    specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step, ytick_step)
+
+Display an audio spectrogram in dB, seconds, and Hz.
+
+# Arguments:
+- `audio_spectrogram::Float`: the audio spectrogram (without DC and mirrored frequencies) (number_frequencies, number_times).
+- `number_samples::Integer`: the number of samples from the original signal.
+- `number_samples::Float`: the sampling frequency from the original signal in Hz.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `ytick_step::Integer=1000`: the resolution for the y-axis ticks in Hz (default: 1000 Hz).
+"""
+function specshow(audio_spectrogram, number_samples, sampling_frequency,
+    xtick_step=1, ytick_step=1000)
+
+    # Get the number of frequency channels and time frames
+    number_frequencies, number_times = size(audio_spectrogram);
+
+    # Derive the number of Hertz and seconds
+    number_hertz = sampling_frequency / 2;
+    number_seconds = number_samples / sampling_frequency;
+
+    # Derive the number of time frames per second and the number of frequency channels per Hz
+    time_resolution = number_times / number_seconds;
+    frequency_resolution = number_frequencies / number_hertz;
+
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_seconds;]);
+
+    # Prepare the tick locations and labels for the y-axis
+    ytick_locations = [ytick_step * frequency_resolution:ytick_step * frequency_resolution:number_frequencies;];
+    ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;]);
+
+    # Display the spectrogram in dB, seconds, and Hz
+    heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false,
+    xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
+    xlabel = "Time (s)", ylabel = "Frequency (Hz)")
 
 end
 
