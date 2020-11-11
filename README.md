@@ -5,7 +5,7 @@ Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION).
 - [`examples.ipynb`](#examplesipynb): Jupyter module with some examples.
 - [`audio_file.wav`](#audio_filewav): audio file used for the examples.
 
-Make sure to have the following packages installed:
+Make sure to have the following packages installed (`Pkg.add("name_of_the_package")`):
 - [WAV](https://juliapackages.com/p/wav): Julia package to read and write the WAV audio file format.
 - [FFTW](https://juliapackages.com/p/fftw): Julia bindings to the [FFTW](http://www.fftw.org/) library for fast Fourier transforms (FFTs), as well as functionality useful for signal processing.
 
