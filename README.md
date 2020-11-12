@@ -25,6 +25,8 @@ Functions:
 - `imdct` - [Inverse MDCT using the FFT](#inverse-modified-discrete-cosine-transform-mdct-using-the-fast-fourier-transform-fft)
 
 Other:
+- `hamming` - Compute the Hamming window
+- `kaiser` - Compute the Kaiser window
 - `sigplot` - Plot an audio signal in seconds
 - `specshow` - Display an audio spectrogram in dB, seconds, and Hz
 - `cqtspecshow` - Display a CQT audio spectrogram in dB, seconds, and Hz
