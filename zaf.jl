@@ -50,7 +50,43 @@ Compute the short-time Fourier transform (STFT).
 
 # Example: Compute the spectrogram from an audio file
 ```
-lala
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Set the window duration in seconds (audio is stationary around 40 milliseconds)
+window_duration = 0.04;
+
+# Derive the window length in samples (use powers of 2 for faster FFT and constant overlap-add (COLA))
+window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+
+# Compute the window function (periodic Hamming window for COLA)
+window_function = zaf.hamming(window_length, "periodic");
+
+# Set the step length in samples (half of the window length for COLA)
+step_length = convert(Int, window_length/2);
+
+# Compute the STFT
+audio_stft = zaf.stft(audio_signal, window_function, step_length)
+
+# Derive the magnitude spectrogram (without the DC component and the mirrored frequencies)
+audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
+
+# Magnitude spectrogram (without the DC component and the mirrored frequencies)
+audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1,:]);
+
+# Display the spectrogram in dB, seconds, and Hz
+xtick_step = 1
+ytick_step = 1000
+zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 """
 function stft(audio_signal, window_function, step_length)
@@ -968,7 +1004,7 @@ function specshow(audio_spectrogram, number_samples, sampling_frequency,
     ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;]);
 
     # Display the spectrogram in dB, seconds, and Hz
-    heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false,
+    heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
     xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
     xlabel = "Time (s)", ylabel = "Frequency (Hz)")
 
