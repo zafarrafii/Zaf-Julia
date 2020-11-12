@@ -5,14 +5,12 @@ Zafar's Audio Functions in Julia for audio signal analysis (UNDER CONSTRUCTION).
 - [`examples.ipynb`](#examplesipynb): Jupyter module with some examples.
 - [`audio_file.wav`](#audio_filewav): audio file used for the examples.
 
-Make sure to have the following packages installed (`Pkg.add("name_of_the_package")`):
+## zaf.py
+
+This Julia module implements a number of functions for audio signal analysis. Simply copy the file `zaf.jl` in your working directory and you are good to go. Make sure to have the following packages installed (`Pkg.add("name_of_the_package")`):
 - [WAV](https://juliapackages.com/p/wav): Julia package to read and write the WAV audio file format.
 - [FFTW](https://juliapackages.com/p/fftw): Julia bindings to the [FFTW](http://www.fftw.org/) library for fast Fourier transforms (FFTs), as well as functionality useful for signal processing.
 - [Plots](https://docs.juliaplots.org/latest/): powerful convenience for visualization in Julia.
-
-## zaf.py
-
-This Julia module implements a number of functions for audio signal analysis. Simply copy the file `zaf.jl` in your working directory and you are good to go.
 
 Functions:
 - `stft` - [Short-time Fourier transform (STFT)](#short-time-fourier-transform-stft)
@@ -27,8 +25,6 @@ Functions:
 - `imdct` - [Inverse MDCT using the FFT](#inverse-modified-discrete-cosine-transform-mdct-using-the-fast-fourier-transform-fft)
 
 Other:
-- `wavread` - Read a WAVE file (using Scipy)
-- `wavwrite` - Write a WAVE file (using SciPy)
 - `sigplot` - Plot an audio signal in seconds
 - `specshow` - Display an audio spectrogram in dB, seconds, and Hz
 - `cqtspecshow` - Display a CQT audio spectrogram in dB, seconds, and Hz
@@ -36,6 +32,59 @@ Other:
 
 
 ### Short-time Fourier transform (STFT)
+
+```
+audio_stft = zaf.stft(audio_signal, window_function, step_length)
+    
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    window_function: window function (window_length,)
+    step_length: step length in samples
+Output:
+    audio_stft: audio STFT (window_length, number_frames)
+```
+
+#### Example: compute and display the spectrogram from an audio file
+
+```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Set the window duration in seconds (audio is stationary around 40 milliseconds)
+window_duration = 0.04;
+
+# Derive the window length in samples (use powers of 2 for faster FFT and constant overlap-add (COLA))
+window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+
+# Compute the window function (periodic Hamming window for COLA)
+window_function = zaf.hamming(window_length, "periodic");
+
+# Set the step length in samples (half of the window length for COLA)
+step_length = convert(Int, window_length/2);
+
+# Compute the STFT
+audio_stft = zaf.stft(audio_signal, window_function, step_length)
+
+# Derive the magnitude spectrogram (without the DC component and the mirrored frequencies)
+audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
+
+# Magnitude spectrogram (without the DC component and the mirrored frequencies)
+audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1,:]);
+
+# Display the spectrogram in dB, seconds, and Hz
+xtick_step = 1
+ytick_step = 1000
+zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+heatmap!(title = "Spectrogram (dB)", size = (990, 600))
+```
 
 
 ## examples.ipynb
