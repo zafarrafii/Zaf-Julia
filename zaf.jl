@@ -2,26 +2,24 @@
 This Julia module implements a number of functions for audio signal analysis.
 
 # Functions:
-    stft - Short-time Fourier transform (STFT)
-    istft - inverse STFT
-    cqtkernel - Constant-Q transform (CQT) kernel
-    cqtspectrogram - CQT spectrogram using a CQT kernel
-    cqtchromagram - CQT chromagram using a CQT kernel
-    mfcc - Mel frequency cepstrum coefficients (MFCCs)
-    dct - Discrete cosine transform (DCT) using the fast Fourier transform (FFT)
-    dst - Discrete sine transform (DST) using the FFT
-    mdct - Modified discrete cosine transform (MDCT) using the FFT
-    imdct - Inverse MDCT using the FFT
+    stft - Compute the short-time Fourier transform (STFT).
+    istft - Compute the inverse STFT.
+    cqtkernel - Compute the constant-Q transform (CQT) kernel.
+    cqtspectrogram - Compute the CQT spectrogram using a CQT kernel.
+    cqtchromagram - Compute the CQT chromagram using a CQT kernel.
+    mfcc - Compute the mel frequency cepstrum coefficients (MFCCs).
+    dct - Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
+    dst - Compute the discrete sine transform (DST) using the FFT.
+    mdct - Compute the modified discrete cosine transform (MDCT) using the FFT.
+    imdct - Compute the inverse MDCT using the FFT.
 
 # Other:
-    hamming - Compute the Hamming window
-    kaiser - Compute the Kaiser window
-    wavread - Read a WAVE file (using Scipy)
-    wavwrite - Write a WAVE file (using Scipy)
-    sigplot - Plot an audio signal in seconds
-    specshow - Display an audio spectrogram in dB, seconds, and Hz
-    cqtspecshow - Display a CQT audio spectrogram in dB, seconds, and Hz
-    cqtchromshow - Display a CQT audio chromagram in seconds
+    hamming - Compute the Hamming window.
+    kaiser - Compute the Kaiser window.
+    sigplot - Plot a signal in seconds.
+    specshow - Display an spectrogram in dB, seconds, and Hz.
+    cqtspecshow - Display a CQT spectrogram in dB, seconds, and Hz.
+    cqtchromshow - Display a CQT chromagram in seconds.
 
 # Author:
     Zafar Rafii
@@ -29,7 +27,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/11/20
+    11/12/20
 """
 module zaf
 
@@ -39,15 +37,14 @@ export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
 
 """
-    audio_stft = zaf.stft(audio_signal, window_function, step_length);
+    audio_stft = zaf.stft(audio_signal, window_function, step_length)
 
 Compute the short-time Fourier transform (STFT).
 
-# Inputs:
+# Arguments:
 -  `audio_signal::Float`: the audio signal (number_samples,).
 - `window_function::Float`: the window function (window_length,).
 - `step_length::Integer`: the step length in samples.
-# Output:
 - `audio_stft::Complex`: the audio STFT (window_length, number_frames).
 
 # Example: Compute the spectrogram from an audio file
@@ -126,15 +123,15 @@ function stft(audio_signal, window_function, step_length)
 end
 
 """
-    audio_istft = zaf.istft(audio_signal, window_function, step_length);
+    audio_istft = zaf.istft(audio_signal, window_function, step_length)
 
 Compute the inverse short-time Fourier transform (STFT).
 
 # Arguments:
-- `audio_stft::Complex`: the audio STFT [window_length, number_frames]
-- `window_function::Float`: the window function [window_length, 1]
-- `step_length::Integer`: the step length in samples
-- `audio_signal::Float`: the audio signal [number_samples, 1]
+- `audio_stft::Complex`: the audio STFT (window_length, number_frames).
+- `window_function::Float`: the window function (window_length,).
+- `step_length::Integer`: the step length in samples.
+- `audio_signal::Float`: the audio signal (number_samples,).
 
 # Example: Estimate the center and sides signals of a stereo audio file
 ```
@@ -143,32 +140,32 @@ Compute the inverse short-time Fourier transform (STFT).
 """
 function istft(audio_stft, window_function, step_length)
 
-    # Window length in samples and number of time frames
+    # Get the window length in samples and the number of time frames
     window_length, number_times = size(audio_stft);
 
-    # Number of samples for the signal
-    number_samples = (number_times-1)*step_length+window_length;
+    # Compute the number of samples for the signal
+    number_samples = number_times*step_length + (window_length-step_length);
 
     # Initialize the signal
-    audio_signal = zeros(number_samples, 1);
+    audio_signal = zeros(number_samples);
 
-    # Inverse Fourier transform of the frames and real part to ensure real values
+    # Compute the inverse Fourier transform of the frames and real part to ensure real values
     audio_stft = real(ifft(audio_stft, 1));
 
     # Loop over the time frames
-    for time_index = 1:number_times
+    i = 0
+    for j = 1:number_times
 
-        # Constant overlap-add (if proper window and step)
-        sample_index = step_length*(time_index-1);
-        audio_signal[1+sample_index:window_length+sample_index] = audio_signal[1+sample_index:window_length+sample_index]
-        + audio_stft[:,time_index];
+        # Perform a constant overlap-add (COLA) of the signal (with proper window function and step length)
+        audio_signal[i+1:i+window_length] = audio_signal[i+1:i+window_length] + audio_stft[:,j];
+        i = i + step_length
 
     end
 
-    # Remove the zero-padding at the start and end
+    # Remove the zero-padding at the start and at the end of the signal
     audio_signal = audio_signal[window_length-step_length+1:number_samples-(window_length-step_length)];
 
-    # Un-apply window (just in case)
+    # Normalize the signal by the gain introduced by the COLA (if any)
     audio_signal = audio_signal/sum(window_function[1:step_length:window_length]);
 
 end
@@ -901,18 +898,18 @@ function imdct(audio_mdct, window_function)
 end
 
 """
-    window_function = hamming(window_length, window_sampling="symmetric");
+    window_function = hamming(window_length, window_sampling="symmetric")
 
 Compute the Hamming window.
 
-# Inputs:
+# Arguments:
 - `window_length::Integer`: the window length in samples.
-- `window_sampling::Char="symmetric"`: the window sampling ("symmetric" or "periodic").
-# Output:
-- `window_function::Float`: the window function (number_samples,).
+- `window_sampling::Char="symmetric"`: the window sampling method ("symmetric" or "periodic").
+- `window_function::Float`: the window function (window_length,).
 """
 function hamming(window_length, window_sampling="symmetric")
 
+    # Compute the Hamming window, symmetric for filter design and periodic for spectral analysis
     if window_sampling == "symmetric"
         window_function = 0.54 .- 0.46*cos.(2*pi*(0:window_length-1)/(window_length-1));
     elseif window_sampling == "periodic"
@@ -922,19 +919,19 @@ function hamming(window_length, window_sampling="symmetric")
 end
 
 """
-    window_function = kaiser(window_length, alpha_value);
+    window_function = kaiser(window_length, alpha_value)
 
 Compute the Kaiser window.
 
-# Inputs:
+# Arguments:
 - `window_length::Integer`: the window length in samples.
 - `alpha_value::Float`: the alpha value that determines the shape of the window.
-# Output:
-- `window_function::Float`: the window function (number_samples,).
+- `window_function::Float`: the window function (window_length,).
 """
 function kaiser(window_length, alpha_value)
 
-    window_function = zeros(window_length, 1);
+    # Compute the Kaiser window using the modified Bessel function of the first kind
+    window_function = zeros(window_length);
     for window_index = 1:window_length
         window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1).^2));
     end
