@@ -87,6 +87,29 @@ heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 
 
+<img src="images/stft.png" width="1000">
+
+
+### Inverse short-time Fourier transform (STFT)
+
+```
+audio_signal = zaf.istft(audio_stft, window_function, step_length)
+
+Inputs:
+    audio_stft: audio STFT (window_length, number_frames)
+    window_function: window function (window_length,)
+    step_length: step length in samples
+Output:
+    audio_signal: audio signal (number_samples,)
+```
+
+#### Example: estimate the center and the sides from a stereo audio file
+
+```
+# Import the modules
+```
+
+
 ## examples.ipynb
 
 This Jupyter notebook shows some examples for the different functions of the Julia module `zaf`.
