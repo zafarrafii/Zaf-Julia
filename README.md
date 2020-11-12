@@ -29,10 +29,10 @@ Functions:
 Other:
 - `hamming` - Compute the Hamming window
 - `kaiser` - Compute the Kaiser window
-- `sigplot` - Plot an audio signal in seconds
-- `specshow` - Display an audio spectrogram in dB, seconds, and Hz
-- `cqtspecshow` - Display a CQT audio spectrogram in dB, seconds, and Hz
-- `cqtchromshow` - Display a CQT audio chromagram in seconds
+- `sigplot` - Plot a signal in seconds
+- `specshow` - Display a spectrogram in dB, seconds, and Hz
+- `cqtspecshow` - Display a CQT spectrogram in dB, seconds, and Hz
+- `cqtchromshow` - Display a CQT chromagram in seconds
 
 
 ### Short-time Fourier transform (STFT)
