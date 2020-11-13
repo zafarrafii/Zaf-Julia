@@ -86,7 +86,7 @@ audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1,:]);
 # Display the spectrogram in dB, seconds, and Hz
 xtick_step = 1
 ytick_step = 1000
-zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step);
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 
@@ -155,13 +155,13 @@ wavwrite(sides_signal, "sides_signal.wav", Fs=sampling_frequency);
 
 # Display the original, center, and sides signals in seconds
 xtick_step = 1
-signal_plot1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step);
+plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step);
 plot!(ylims = (-1, 1), title = "Original signal")
-signal_plot2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step);
+plot_object2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step);
 plot!(ylims = (-1, 1), title = "Center signal")
-signal_plot3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step);
-plot!(ylims = (-1, 1), title = "Original signal")
-plot(signal_plot1, signal_plot2, signal_plot3, layout = (3, 1), size = (990, 600))
+plot_object3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Sides signal")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 
 <img src="images/istft.png" width="1000">
