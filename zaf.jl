@@ -27,7 +27,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/12/20
+    11/13/20
 """
 module zaf
 
@@ -37,12 +37,12 @@ export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
 
 """
-    audio_stft = zaf.stft(audio_signal, window_function, step_length)
+    audio_stft = zaf.stft(audio_signal, window_function, step_length);
 
 Compute the short-time Fourier transform (STFT).
 
 # Arguments:
--  `audio_signal::Float`: the audio signal (number_samples,).
+- `audio_signal::Float`: the audio signal (number_samples,).
 - `window_function::Float`: the window function (window_length,).
 - `step_length::Integer`: the step length in samples.
 - `audio_stft::Complex`: the audio STFT (window_length, number_frames).
@@ -84,7 +84,7 @@ audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1,:]);
 # Display the spectrogram in dB, seconds, and Hz
 xtick_step = 1
 ytick_step = 1000
-zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step);
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -123,7 +123,7 @@ function stft(audio_signal, window_function, step_length)
 end
 
 """
-    audio_istft = zaf.istft(audio_signal, window_function, step_length)
+    audio_istft = zaf.istft(audio_signal, window_function, step_length);
 
 Compute the inverse short-time Fourier transform (STFT).
 
@@ -135,7 +135,59 @@ Compute the inverse short-time Fourier transform (STFT).
 
 # Example: Estimate the center and sides signals of a stereo audio file
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Plots
 
+# Read the (stereo) audio signal with its sampling frequency in Hz
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+
+# Set the parameters for the STFT
+window_duration = 0.04;
+window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+window_function = zaf.hamming(window_length, "periodic");
+step_length = convert(Int, window_length/2);
+
+# Compute the STFTs for the left and right channels
+audio_stft1 = zaf.stft(audio_signal[:,1], window_function, step_length);
+audio_stft2 = zaf.stft(audio_signal[:,2], window_function, step_length);
+
+# Derive the magnitude spectrograms (with DC component) for the left and right channels
+audio_spectrogram1 = abs.(audio_stft1[1:convert(Int, window_length/2)+1, :]);
+audio_spectrogram2 = abs.(audio_stft2[1:convert(Int, window_length/2)+1, :]);
+
+# Estimate the time-frequency masks for the left and right channels for the center
+center_mask1 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram1;
+center_mask2 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram2;
+
+# Derive the STFTs for the left and right channels for the center (with mirrored frequencies)
+center_stft1 = [center_mask1; center_mask1[convert(Int, window_length/2):-1:2,:]].*audio_stft1;
+center_stft2 = [center_mask2; center_mask2[convert(Int, window_length/2):-1:2,:]].*audio_stft2;
+
+# Synthesize the signals for the left and right channels for the center
+center_signal1 = zaf.istft(center_stft1, window_function, step_length);
+center_signal2 = zaf.istft(center_stft2, window_function, step_length);
+
+# Derive the final stereo center and sides signals
+center_signal = hcat(center_signal1, center_signal2);
+center_signal = center_signal[1:size(audio_signal, 1), :];
+sides_signal = audio_signal-center_signal;
+
+# Write the center and sides signals
+wavwrite(center_signal, "center_signal.wav", Fs=sampling_frequency);
+wavwrite(sides_signal, "sides_signal.wav", Fs=sampling_frequency);
+
+# Display the original, center, and sides signals in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Original signal")
+plot_object2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Center signal")
+plot_object3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Sides signal")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 """
 function istft(audio_stft, window_function, step_length)
@@ -940,16 +992,43 @@ function kaiser(window_length, alpha_value)
 end
 
 """
-    specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step=1, ytick_step=1000)
+    plot_object = zaf.sigplot(audio_signal, sampling_frequency, xtick_step=1);
+
+Plot an audio signal in seconds.
+
+# Arguments:
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `sampling_frequency::Float`: the sampling frequency from the original signal in Hz.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `plot_object:Plots:` the plot object.
+"""
+function sigplot(audio_signal, sampling_frequency, xtick_step=1)
+
+    # Get the number of samples
+    number_samples = size(audio_signal, 1);
+
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations = [xtick_step * sampling_frequency:xtick_step * sampling_frequency:number_samples;];
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_samples / sampling_frequency;]);
+
+    # Plot the signal in seconds
+    plot_object = plot(audio_signal, legend = false, fmt = :png,
+    xlims = (0, number_samples), xticks = (xtick_locations, xtick_labels), xlabel = "Time (s)");
+
+end
+
+"""
+    plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step=1, ytick_step=1000);
 
 Display an audio spectrogram in dB, seconds, and Hz.
 
 # Arguments:
 - `audio_spectrogram::Float`: the audio spectrogram (without DC and mirrored frequencies) (number_frequencies, number_times).
 - `number_samples::Integer`: the number of samples from the original signal.
-- `number_samples::Float`: the sampling frequency from the original signal in Hz.
+- `sampling_frequency::Float`: the sampling frequency from the original signal in Hz.
 - `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
-- `ytick_step::Integer=1000`: the resolution for the y-axis ticks in Hz (default: 1000 Hz).
+- `ytick_step::Integer=1000`: the step for the y-axis ticks in Hz (default: 1000 Hz).
+- `plot_object:Plots:` the plot object.
 """
 function specshow(audio_spectrogram, number_samples, sampling_frequency,
     xtick_step=1, ytick_step=1000)
@@ -974,9 +1053,9 @@ function specshow(audio_spectrogram, number_samples, sampling_frequency,
     ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;]);
 
     # Display the spectrogram in dB, seconds, and Hz
-    heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
+    plot_object = heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
     xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
-    xlabel = "Time (s)", ylabel = "Frequency (Hz)")
+    xlabel = "Time (s)", ylabel = "Frequency (Hz)");
 
 end
 
