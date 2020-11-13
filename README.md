@@ -90,7 +90,6 @@ zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 
-
 <img src="images/stft.png" width="1000">
 
 
@@ -110,8 +109,62 @@ Output:
 #### Example: estimate the center and the sides from a stereo audio file
 
 ```
-# Import the modules
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Plots
+
+# Read the (stereo) audio signal with its sampling frequency in Hz
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+
+# Set the parameters for the STFT
+window_duration = 0.04;
+window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+window_function = zaf.hamming(window_length, "periodic");
+step_length = convert(Int, window_length/2);
+
+# Compute the STFTs for the left and right channels
+audio_stft1 = zaf.stft(audio_signal[:,1], window_function, step_length);
+audio_stft2 = zaf.stft(audio_signal[:,2], window_function, step_length);
+
+# Derive the magnitude spectrograms (with DC component) for the left and right channels
+audio_spectrogram1 = abs.(audio_stft1[1:convert(Int, window_length/2)+1, :]);
+audio_spectrogram2 = abs.(audio_stft2[1:convert(Int, window_length/2)+1, :]);
+
+# Estimate the time-frequency masks for the left and right channels for the center
+center_mask1 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram1;
+center_mask2 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram2;
+
+# Derive the STFTs for the left and right channels for the center (with mirrored frequencies)
+center_stft1 = [center_mask1; center_mask1[convert(Int, window_length/2):-1:2,:]].*audio_stft1;
+center_stft2 = [center_mask2; center_mask2[convert(Int, window_length/2):-1:2,:]].*audio_stft2;
+
+# Synthesize the signals for the left and right channels for the center
+center_signal1 = zaf.istft(center_stft1, window_function, step_length);
+center_signal2 = zaf.istft(center_stft2, window_function, step_length);
+
+# Derive the final stereo center and sides signals
+center_signal = hcat(center_signal1, center_signal2);
+center_signal = center_signal[1:size(audio_signal, 1), :];
+sides_signal = audio_signal-center_signal;
+
+# Write the center and sides signals
+wavwrite(center_signal, "center_signal.wav", Fs=sampling_frequency);
+wavwrite(sides_signal, "sides_signal.wav", Fs=sampling_frequency);
+
+# Display the original, center, and sides signals in seconds
+xtick_step = 1
+signal_plot1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Original signal")
+signal_plot2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Center signal")
+signal_plot3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step);
+plot!(ylims = (-1, 1), title = "Original signal")
+plot(signal_plot1, signal_plot2, signal_plot3, layout = (3, 1), size = (990, 600))
 ```
+
+<img src="images/istft.png" width="1000">
 
 
 ## examples.ipynb
