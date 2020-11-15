@@ -27,11 +27,11 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/13/20
+    11/15/20
 """
 module zaf
 
-using FFTW, Plots
+using FFTW, SparseArrays, Plots
 
 export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
 mdct, imdct
@@ -47,7 +47,7 @@ Compute the short-time Fourier transform (STFT).
 - `step_length::Integer`: the step length in samples.
 - `audio_stft::Complex`: the audio STFT (window_length, number_frames).
 
-# Example: Compute the spectrogram from an audio file
+# Example: compute the spectrogram from an audio file
 ```
 # Load the modules
 include("./zaf.jl")
@@ -133,7 +133,7 @@ Compute the inverse short-time Fourier transform (STFT).
 - `step_length::Integer`: the step length in samples.
 - `audio_signal::Float`: the audio signal (number_samples,).
 
-# Example: Estimate the center and sides signals of a stereo audio file
+# Example: estimate the center and sides signals of a stereo audio file
 ```
 # Load the modules
 include("./zaf.jl")
@@ -223,90 +223,89 @@ function istft(audio_stft, window_function, step_length)
 end
 
 """
-    cqt_kernel = z.cqtkernel(sample_rate, frequency_resolution, minimum_frequency, maximum_frequency);
+    cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
 
-Compute the constant-Q transform (CQT) kernel
+Compute the constant-Q transform (CQT) kernel.
 
 # Arguments:
-- `sample_rate::Float` the sample rate in Hz
-- `frequency_resolution::Integer` the frequency resolution in number of frequency channels per semitone
-- `minimum_frequency::Float`: the minimum frequency in Hz
-- `maximum_frequency::Float`: the maximum frequency in Hz
-- `cqt_kernel::Complex`: the CQT kernel [number_frequencies, fft_length]
+- `sampling_frequency::Float` the sampling frequency in Hz.
+- `frequency_resolution::Integer` the frequency resolution in number of frequency channels per semitone.
+- `minimum_frequency::Float`: the minimum frequency in Hz.
+- `maximum_frequency::Float`: the maximum frequency in Hz.
+- `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
 
-# Example: Compute and display the CQT kernel
+# Example: compute and display the CQT kernel
 ```
-# CQT kernel parameters
-sample_rate = 44100;
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using Plots
+
+# Set the parameters for the CQT kernel
+sampling_frequency = 44100;
 frequency_resolution = 2;
 minimum_frequency = 55;
-maximum_frequency = sample_rate/2;
+maximum_frequency = sampling_frequency/2;
 
-# CQT kernel
-include("z.jl")
-cqt_kernel = z.cqtkernel(sample_rate, frequency_resolution, minimum_frequency, maximum_frequency);
+# Compute the CQT kernel
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
 
-# Magnitude CQT kernel displayed
-Pkg.add("Plots")
-using Plots
-plotly()
-heatmap(abs.(cqt_kernel))
+# Display the magnitude CQT kernel
+heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300),
+    title = "Magnitude CQT kernel", xlabel = "FFT length", ylabel = "CQT frequency")
 ```
 """
-function cqtkernel(sample_rate, frequency_resolution, minimum_frequency, maximum_frequency)
+function cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
-    # Number of frequency channels per octave
+    # Derive the umber of frequency channels per octave
     octave_resolution = 12*frequency_resolution;
 
-    # Constant ratio of frequency to resolution (= fk/(fk+1-fk))
+    # Compute the constant ratio of frequency to resolution (= fk/(fk+1-fk))
     quality_factor = 1/(2^(1/octave_resolution)-1);
 
-    # Number of frequency channels for the CQT
-    number_frequencies = round(Int64, octave_resolution*log2(maximum_frequency/minimum_frequency));
+    # Compute the number of frequency channels for the CQT
+    number_frequencies = round(Int, octave_resolution*log2(maximum_frequency/minimum_frequency));
 
-    # Window length for the FFT (= window length of the minimum frequency = longest window)
-    fft_length = nextpow2(ceil(Int64, quality_factor*sample_rate/minimum_frequency));
+    # Compute the window length for the FFT (= longest window for the minimum frequency)
+    fft_length = nextpow(2, ceil(Int, quality_factor*sampling_frequency/minimum_frequency));
 
-    # Initialize the kernel
-    cqt_kernel = zeros(Complex64, number_frequencies, fft_length);
+    # Initialize the (complex) CQT kernel
+    cqt_kernel = zeros(ComplexF64, number_frequencies, fft_length);
 
     # Loop over the frequency channels
-    for frequency_index = 1:number_frequencies
+    for i = 1:number_frequencies
 
-        # Frequency value (in Hz)
-        frequency_value = minimum_frequency*2^((frequency_index-1)/octave_resolution);
+        # Derive the frequency value in Hz
+        frequency_value = minimum_frequency * 2^((i-1)/octave_resolution);
 
-        # Window length (nearest odd value because the complex exponential will have an odd length, in samples)
-        window_length = 2*round(Int64, quality_factor*sample_rate/frequency_value/2)+1;
+        # Compute the window length in samples (nearest odd value to center the temporal kernel on 0)
+        window_length = 2*round(Int, quality_factor*sampling_frequency/frequency_value/2)+1;
 
-        # Temporal kernel (without zero-padding, odd and symmetric)
-        temporal_kernel = hamming(window_length, "symmetric").*
+        # Compute the temporal kernel for the current frequency (odd and symmetric)
+        temporal_kernel = hamming(window_length, "symmetric") .*
         exp.(2*pi*im*quality_factor*(-(window_length-1)/2:(window_length-1)/2)/window_length)/window_length;
 
-        # Pre and post zero-padding to center FFTs
-        temporal_kernel = [zeros(1, convert(Int64, (fft_length-window_length+1)/2)),
-        temporal_kernel', zeros(1, convert(Int64, (fft_length-window_length-1)/2))];
+        # Derive the pad width to center the temporal kernels
+        pad_width = convert(Int, (fft_length - window_length + 1) / 2)
 
-        # Spectral kernel (mostly real because temporal kernel almost symmetric)
-        # (Note that Julia's fft equals the complex conjugate of Matlab's fft!)
-        spectral_kernel = fft(temporal_kernel);
-
-        # Save the spectral kernels
-        cqt_kernel[frequency_index, :] = spectral_kernel;
+        # Save the current temporal kernel at the center
+        # (the zero-padded temporal kernels are not perfectly symmetric anymore because of the even length here)
+        cqt_kernel[i, pad_width + 1: pad_width + window_length] = temporal_kernel
 
     end
 
-    # Energy threshold for making the kernel sparse
-    energy_threshold = 0.01;
+    # Derive the spectral kernels by taking the FFT of the temporal kernels
+    # (the spectral kernels are almost real because the temporal kernels are almost symmetric)
+    cqt_kernel = fft(cqt_kernel, 2)
 
-    # Make the CQT kernel sparser
-    cqt_kernel[abs.(cqt_kernel).<energy_threshold] = 0;
+    # Make the CQT kernel sparser by zeroing magnitudes below a threshold
+    cqt_kernel[abs.(cqt_kernel).<0.01] .= 0;
 
-    # Make the CQT kernel sparse
+    # Make the CQT kernel sparse by saving it as a compressed sparse column matrix
     cqt_kernel = sparse(cqt_kernel);
 
-    # From Parseval's theorem
-    cqt_kernel = conj(cqt_kernel)/fft_length;
+    # Get the final CQT kernel by using Parseval's theorem
+    cqt_kernel = conj.(cqt_kernel)/fft_length;
 
 end
 
