@@ -166,6 +166,59 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 
 <img src="images/istft.png" width="1000">
 
+### Constant-Q transform (CQT) kernel
+
+```
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+
+Inputs:
+    sampling_frequency: sampling frequency in Hz
+    frequency_resolution: frequency resolution in number of frequency channels per semitone
+    minimum_frequency: minimum frequency in Hz
+    maximum_frequency: maximum frequency in Hz
+Output:
+    cqt_kernel: CQT kernel (number_frequencies, fft_length)
+```
+
+#### Example: compute and display the CQT kernel
+
+```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using Plots
+
+# Set the parameters for the CQT kernel
+sampling_frequency = 44100;
+frequency_resolution = 2;
+minimum_frequency = 55;
+maximum_frequency = sampling_frequency/2;
+
+# Compute the CQT kernel
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+
+# Display the magnitude CQT kernel
+heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
+    title = "Magnitude CQT kernel", xlabel = "FFT length", ylabel = "CQT frequency")
+```
+
+<img src="images/cqtkernel.png" width="1000">
+
+
+### Constant-Q transform (CQT) spectrogram using a CQT kernel
+
+```
+audio_spectrogram = zaf.cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel)
+
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    sampling_frequency: sampling frequency in Hz
+    time_resolution: time resolution in number of time frames per second
+    cqt_kernel: CQT kernel (number_frequencies, fft_length)
+Output:
+    audio_spectrogram: audio spectrogram in magnitude (number_frequencies, number_times)
+```
+
 
 ## examples.ipynb
 
