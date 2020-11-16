@@ -384,44 +384,21 @@ function cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_k
 end
 
 """
-    audio_chromagram = z.cqtchromagram(audio_signal, sample_rate, time_resolution, frequency_resolution, cqt_kernel);
+    audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel);
 
 Compute the constant-Q transform (CQT) chromagram using a kernel
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, 1]
-- `sample_rate::Float`: the sample rate in Hz
-- `time_resolution::Float`: the time resolution in number of time frames per second
-- `frequency_resolution::Integer`: the frequency resolution in number of frequency channels per semitones
-- `cqt_kernel::Complex`: the CQT kernel [number_frequencies, fft_length]
-- `audio_chromagram::Complex`: the audio chromagram [number_chromas, number_times]
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `sampling_frequency::Float`: the sample rate in Hz.
+- `time_resolution::Float`: the time resolution in number of time frames per second.
+- `frequency_resolution::Integer`: the frequency resolution in number of frequency channels per semitones.
+- `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
+- `audio_chromagram::Float`: the audio chromagram (number_chromas, number_times).
 
 # Example: Compute and display the CQT chromagram
 ```
-# Audio file averaged over the channels and sample rate in Hz
-Pkg.add("WAV")
-using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
-
-# CQT kernel
-frequency_resolution = 2;
-minimum_frequency = 55;
-maximum_frequency = 3520;
-include("z.jl")
-cqt_kernel = z.cqtkernel(sample_rate, frequency_resolution, minimum_frequency, maximum_frequency);
-
-# CQT chromagram
-time_resolution = 25;
-audio_chromagram = z.cqtchromagram(audio_signal, sample_rate, time_resolution, frequency_resolution, cqt_kernel);
-
-# CQT chromagram displayed in dB, s, and chromas
-Pkg.add("Plots")
-using Plots
-plotly()
-x_labels = [string(round(i/time_resolution, 2)) for i = 1:size(audio_chromagram, 2)];
-y_labels = [string(i) for i = 1:size(audio_chromagram, 1)];
-heatmap(x_labels, y_labels, 20*log10.(audio_chromagram))
+here
 ```
 """
 function cqtchromagram(audio_signal, sample_rate, time_resolution, frequency_resolution, cqt_kernel)
