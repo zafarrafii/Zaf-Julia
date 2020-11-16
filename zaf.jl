@@ -56,7 +56,7 @@ using WAV
 using Statistics
 using Plots
 
-# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
 audio_signal, sampling_frequency = wavread("audio_file.wav");
 audio_signal = mean(audio_signal, dims=2);
 
@@ -310,72 +310,75 @@ function cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, 
 end
 
 """
-    audio_spectrogram = z.cqtspectrogram(audio_signal,sample_rate,time_resolution,cqt_kernel);
+    audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
 
-Compute constant-Q transform (CQT) spectrogram using a kernel
+Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, 1]
-- `sample_rate::Float`: the sample rate in Hz
-- `time_resolution::Float`: the time resolution in number of time frames per second
-- `cqt_kernel::Complex`: the CQT kernel [number_frequencies, fft_length]
-- `audio_spectrogram::Float`: the audio spectrogram in magnitude [number_frequencies, number_times]
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `sample_rate::Float`: the sample rate in Hz.
+- `time_resolution::Float`: the time resolution in number of time frames per second.
+- `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
+- `audio_spectrogram::Float`: the audio spectrogram in magnitude (number_frequencies, number_times).
 
-# Example: Compute and display the CQT spectrogram
+# Example: compute and display the CQT spectrogram
 ```
-# Audio file averaged over the channels and sample rate in Hz
-Pkg.add("WAV")
+# Load the modules
+include("./zaf.jl")
+using .zaf
 using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
+using Statistics
+using Plots
 
-# CQT kernel
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Compute the CQT kernel using some parameters
 frequency_resolution = 2;
 minimum_frequency = 55;
 maximum_frequency = 3520;
-include("z.jl")
-cqt_kernel = z.cqtkernel(sample_rate, frequency_resolution, minimum_frequency, maximum_frequency);
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
 
-# CQT spectrogram
+# Compute the (magnitude) CQT spectrogram using the kernel
 time_resolution = 25;
-audio_spectrogram = z.cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel);
+audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
 
-# CQT spectrogram displayed in dB, s, and Hz
-Pkg.add("Plots")
-using Plots
-plotly()
-x_labels = [string(round(i/time_resolution, 2)) for i = 1:size(audio_spectrogram, 2)];
-y_labels = [string(round(55*2^((i-1)/(12*frequency_resolution)), 2)) for i = 1:size(audio_spectrogram, 1)];
-heatmap(x_labels, y_labels, 20*log10.(audio_spectrogram))
+# Display the CQT spectrogram in dB, seconds, and Hz
+xtick_step = 1
+plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step);
+heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 """
-function cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel)
+function cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
-    # Number of time samples per time frame
-    step_length = round(Int64, sample_rate/time_resolution);
+    # Derive the number of time samples per time frame
+    step_length = round(Int, sampling_frequency/time_resolution);
 
-    # Number of time frames
-    number_times = floor(Int64, length(audio_signal)/step_length);
+    # Compute the number of time frames
+    number_times = floor(Int, length(audio_signal)/step_length);
 
-    # Number of frequency channels and FFT length
+    # Get th number of frequency channels and the FFT length
     number_frequencies, fft_length = size(cqt_kernel);
 
-    # Zero-padding to center the CQT
-    audio_signal = [zeros(ceil(Int64, (fft_length-step_length)/2),1); audio_signal;
-    zeros(floor(Int64, (fft_length-step_length)/2),1)];
+    # Zero-pad the signal to center the CQT
+    audio_signal = [zeros(ceil(Int, (fft_length-step_length)/2)); audio_signal;
+    zeros(floor(Int, (fft_length-step_length)/2))];
 
     # Initialize the spectrogram
     audio_spectrogram = zeros(number_frequencies, number_times);
 
     # Loop over the time frames
-    for time_index = 1:number_times
+    i = 0
+    for j = 1:number_times
 
-        # Magnitude CQT using the kernel
-        sample_index = step_length*(time_index-1);
-        audio_spectrogram[:, time_index] = abs.(cqt_kernel * fft(audio_signal[sample_index+1:sample_index+fft_length]));
+        # Compute the magnitude CQT using the kernel
+        audio_spectrogram[:, j] = abs.(cqt_kernel * fft(audio_signal[i+1:i+fft_length]));
+        i = i + step_length
 
     end
 
+    # Return the output explicitly as it is not clear here what the last value is
     return audio_spectrogram
 
 end
@@ -993,7 +996,7 @@ end
 """
     plot_object = zaf.sigplot(audio_signal, sampling_frequency, xtick_step=1);
 
-Plot an audio signal in seconds.
+Plot a signal in seconds.
 
 # Arguments:
 - `audio_signal::Float`: the audio signal (number_samples,).
@@ -1019,7 +1022,7 @@ end
 """
     plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step=1, ytick_step=1000);
 
-Display an audio spectrogram in dB, seconds, and Hz.
+Display a spectrogram in dB, seconds, and Hz.
 
 # Arguments:
 - `audio_spectrogram::Float`: the audio spectrogram (without DC and mirrored frequencies) (number_frequencies, number_times).
@@ -1050,6 +1053,45 @@ function specshow(audio_spectrogram, number_samples, sampling_frequency,
     # Prepare the tick locations and labels for the y-axis
     ytick_locations = [ytick_step * frequency_resolution:ytick_step * frequency_resolution:number_frequencies;];
     ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;]);
+
+    # Display the spectrogram in dB, seconds, and Hz
+    plot_object = heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
+    xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
+    xlabel = "Time (s)", ylabel = "Frequency (Hz)");
+
+end
+
+"""
+    plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step=1);
+
+Display a CQT spectrogram in dB and seconds, and Hz.
+
+# Arguments:
+- `audio_spectrogram::Float`: the CQT audio spectrogram (number_frequencies, number_times).
+- `time_resolution::Integer`: the time resolution in number of time frames per second.
+- `frequency_resolution::Integer`: the frequency resolution in number of frequency channels per semitone.
+- `minimum_frequency::Float`: the minimum frequency in Hz.
+- `maximum_frequency::Float`: the maximum frequency in Hz.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `plot_object:Plots:` the plot object.
+"""
+function cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution,
+    minimum_frequency, maximum_frequency, xtick_step=1)
+
+    # Get the number of frequency channels and time frames
+    number_frequencies, number_times = size(audio_spectrogram);
+
+    # Compute the octave resolution and number of frequencies
+    octave_resolution = 12 * frequency_resolution;
+    number_frequencies = round(Int, octave_resolution * log2(maximum_frequency / minimum_frequency))
+
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_times/time_resolution;]);
+
+    # Prepare the tick locations and labels for the y-axis
+    ytick_locations = [0:octave_resolution:number_frequencies;];
+    ytick_labels = convert(Array{Int}, minimum_frequency * 2 .^ (ytick_locations/octave_resolution));
 
     # Display the spectrogram in dB, seconds, and Hz
     plot_object = heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
