@@ -27,7 +27,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/15/20
+    11/16/20
 """
 module zaf
 
@@ -398,48 +398,73 @@ Compute the constant-Q transform (CQT) chromagram using a kernel
 
 # Example: Compute and display the CQT chromagram
 ```
-here
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Compute the CQT kernel using some parameters
+frequency_resolution = 2;
+minimum_frequency = 55;
+maximum_frequency = 3520;
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+
+# Compute the CQT chromagram
+time_resolution = 25;
+audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel);
+
+# Display the CQT chromagram in seconds
+xtick_step = 1
+plot_object = zaf.cqtchromshow(audio_chromagram, time_resolution, xtick_step);
+heatmap!(title = "CQT chromagram", size = (990, 300))
 ```
 """
-function cqtchromagram(audio_signal, sample_rate, time_resolution, frequency_resolution, cqt_kernel)
+function cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
 
-    # CQT spectrogram
-    audio_spectrogram = z.cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel);
+    # Compute the CQT spectrogram
+    audio_spectrogram = cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
 
-    # Number of frequency channels and time frames
+    # Get the number of frequency channels and time frames
     number_frequencies, number_times = size(audio_spectrogram);
 
-    # Number of chroma bins
+    # Derive the number of chroma channels
     number_chromas = 12*frequency_resolution;
 
     # Initialize the chromagram
     audio_chromagram = zeros(number_chromas, number_times);
 
-    # Loop over the chroma bins
-    for chroma_index = 1:number_chromas
+    # Loop over the chroma channels
+    for i = 1:number_chromas
 
         # Sum the energy of the frequency channels for every chroma
-        audio_chromagram[chroma_index, :] = sum(audio_spectrogram[chroma_index:number_chromas:number_frequencies, :], 1);
+        audio_chromagram[i, :] = sum(audio_spectrogram[i:number_chromas:number_frequencies, :], dims=1);
 
     end
 
+    # Return the output explicitly as it is not clear here what the last value is
     return audio_chromagram
 
 end
 
 """
-audio_mfcc = z.mfcc(audio_signal, sample_rate, number_filters, number_coefficients);
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients);
 
-    Compute the mel frequency cepstrum coefficients (MFFCs)
+    Compute the mel frequency cepstrum coefficients (MFFCs).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, 1]
-- `sample_rate::Float`: the sample rate in Hz
-- `number_filters::Integer`: the number of filters
-- `number_coefficients::Integer`: the number of coefficients (without the 0th coefficient)
-- `audio_mfcc::Float`: the audio MFCCs [number_times, number_coefficients]
+- `audio_signal::Float`: the audio signal (number_samples,)
+- `sample_frequency::Float`: the sample rate in Hz.
+- `number_filters::Integer`: the number of filters.
+- `number_coefficients::Integer`: the number of coefficients (without the 0th coefficient).
+- `audio_mfcc::Float`: the audio MFCCs (number_times, number_coefficients).
 
-# Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
+# Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
 ```
 # Audio signal averaged over its channels and sample rate in Hz
 Pkg.add("WAV")
@@ -1076,5 +1101,32 @@ function cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution,
     xlabel = "Time (s)", ylabel = "Frequency (Hz)");
 
 end
+
+"""
+    plot_object = zaf.cqtchromcshow(audio_chromagram, time_resolution, xtick_step=1);
+
+Display a CQT chromagram in seconds.
+
+# Arguments:
+- `audio_chromagram::Float`: the CQT audio spectrogram (number_chromas, number_times).
+- `time_resolution::Integer`: the time resolution in number of time frames per second.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `plot_object:Plots:` the plot object.
+"""
+function cqtchromshow(audio_chromagram, time_resolution, xtick_step=1)
+
+    # Get the number of time frames
+    number_times = size(audio_chromagram, 2);
+
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_times/time_resolution;]);
+
+    # Display the chromagram in seconds
+    plot_object = heatmap(audio_chromagram, fillcolor = :jet, legend = false, fmt = :png,
+    xticks = (xtick_locations, xtick_labels), xlabel = "Time (s)", ylabel = "Chroma");
+
+end
+
 
 end
