@@ -58,7 +58,7 @@ using WAV
 using Statistics
 using Plots
 
-# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
 audio_signal, sampling_frequency = wavread("audio_file.wav");
 audio_signal = mean(audio_signal, dims=2);
 
