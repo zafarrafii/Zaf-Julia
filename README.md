@@ -270,6 +270,53 @@ Output:
 #### Example: compute and display the CQT chromagram
 
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Compute the CQT kernel using some parameters
+frequency_resolution = 2;
+minimum_frequency = 55;
+maximum_frequency = 3520;
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+
+# Compute the CQT chromagram
+time_resolution = 25;
+audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel);
+
+# Display the CQT chromagram in seconds
+xtick_step = 1
+plot_object = zaf.cqtchromshow(audio_chromagram, time_resolution, xtick_step);
+heatmap!(title = "CQT chromagram", size = (990, 300))
+```
+
+<img src="images/cqtchromagram.png" width="1000">
+
+
+### Mel frequency cepstrum coefficients (MFCCs)
+
+```
+audio_mfcc = zaf.mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
+
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    sampling_frequency: sampling frequency in Hz
+    number_filters: number of filters
+    number_coefficients: number of coefficients (without the 0th coefficient)
+Output:
+    audio_mfcc: audio MFCCs (number_times, number_coefficients)
+```
+
+#### Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
+
+```
 here
 ```
 
