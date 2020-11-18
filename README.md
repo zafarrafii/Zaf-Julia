@@ -119,8 +119,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav");
 
 # Set the parameters for the STFT
-window_duration = 0.04;
-window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency));
 window_function = zaf.hamming(window_length, "periodic");
 step_length = convert(Int, window_length/2);
 
