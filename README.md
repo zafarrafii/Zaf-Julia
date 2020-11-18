@@ -316,8 +316,61 @@ Output:
 #### Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
 
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Compute the MFCCs with a given number of filters and coefficients
+number_filters = 40;
+number_coefficients = 20;
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients);
+
+# Compute the delta and delta-delta MFCCs
+audio_dmfcc = diff(audio_mfcc, dims=2);
+audio_ddmfcc = diff(audio_dmfcc, dims=2);
+
+# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
+time_resolution = sampling_frequency * size(audio_mfcc, 2)/length(audio_signal)
+
+# Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step)
+plot!(title = "MFCCs")
+plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step)
+plot!(title = "Delta MFCCs")
+plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step)
+plot!(title = "Delta MFCCs")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
+```
+
+<img src="images/mfcc.png" width="1000">
+
+
+### Discrete cosine transform (DCT) using the fast Fourier transform (FFT)
+
+```
+audio_dct = zaf.dct(audio_signal, dct_type)
+
+Inputs:
+    audio_signal: audio signal (window_length,)
+    dct_type: dct type (1, 2, 3, or 4)
+Output:
+    audio_dct: audio DCT (number_frequencies,)
+```
+
+#### Example: compute the 4 different DCTs and compare them to SciPy's DCTs
+
+```
 here
 ```
+
 
 ## examples.ipynb
 
