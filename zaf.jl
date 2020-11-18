@@ -27,14 +27,14 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/16/20
+    11/18/20
 """
 module zaf
 
 using FFTW, SparseArrays, Plots
 
-export stft, istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst,
-mdct, imdct
+export stft,
+    istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst, mdct, imdct
 
 """
     audio_stft = zaf.stft(audio_signal, window_function, step_length);
@@ -98,11 +98,24 @@ function stft(audio_signal, window_function, step_length)
     padding_length = floor(Int, window_length / 2)
 
     # Compute the number of time frames given the zero-padding at the start and at the end of the signal
-    number_times = ceil(Int, ((number_samples + 2 * padding_length) - window_length) / step_length) + 1
+    number_times =
+        ceil(
+            Int,
+            ((number_samples + 2 * padding_length) - window_length) /
+            step_length,
+        ) + 1
 
     # Zero-pad the start and the end of the signal to center the windows
-    audio_signal = [zeros(padding_length); audio_signal;
-    zeros((number_times * step_length + (window_length - step_length) - padding_length) - number_samples)]
+    audio_signal = [
+        zeros(padding_length)
+        audio_signal
+        zeros(
+            (
+                number_times * step_length + (window_length - step_length) -
+                padding_length
+            ) - number_samples,
+        )
+    ]
 
     # Initialize the STFT
     audio_stft = zeros(window_length, number_times)
@@ -112,7 +125,7 @@ function stft(audio_signal, window_function, step_length)
     for j = 1:number_times
 
         # Window the signal
-        audio_stft[:, j] = audio_signal[i + 1 : i + window_length] .* window_function
+        audio_stft[:, j] = audio_signal[i+1:i+window_length] .* window_function
         i = i + step_length
 
     end
@@ -145,8 +158,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav");
 
 # Set the parameters for the STFT
-window_duration = 0.04;
-window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency));
 window_function = zaf.hamming(window_length, "periodic");
 step_length = convert(Int, window_length/2);
 
@@ -193,32 +205,35 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 function istft(audio_stft, window_function, step_length)
 
     # Get the window length in samples and the number of time frames
-    window_length, number_times = size(audio_stft);
+    window_length, number_times = size(audio_stft)
 
     # Compute the number of samples for the signal
-    number_samples = number_times*step_length + (window_length-step_length);
+    number_samples = number_times * step_length + (window_length - step_length)
 
     # Initialize the signal
-    audio_signal = zeros(number_samples);
+    audio_signal = zeros(number_samples)
 
     # Compute the inverse Fourier transform of the frames and real part to ensure real values
-    audio_stft = real(ifft(audio_stft, 1));
+    audio_stft = real(ifft(audio_stft, 1))
 
     # Loop over the time frames
     i = 0
     for j = 1:number_times
 
         # Perform a constant overlap-add (COLA) of the signal (with proper window function and step length)
-        audio_signal[i+1:i+window_length] = audio_signal[i+1:i+window_length] + audio_stft[:,j];
+        audio_signal[i+1:i+window_length] =
+            audio_signal[i+1:i+window_length] + audio_stft[:, j]
         i = i + step_length
 
     end
 
     # Remove the zero-padding at the start and at the end of the signal
-    audio_signal = audio_signal[window_length-step_length+1:number_samples-(window_length-step_length)];
+    audio_signal =
+        audio_signal[window_length-step_length+1:number_samples-(window_length-step_length)]
 
     # Normalize the signal by the gain introduced by the COLA (if any)
-    audio_signal = audio_signal/sum(window_function[1:step_length:window_length]);
+    audio_signal =
+        audio_signal / sum(window_function[1:step_length:window_length])
 
 end
 
@@ -255,42 +270,64 @@ heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, s
     title = "Magnitude CQT kernel", xlabel = "FFT length", ylabel = "CQT frequency")
 ```
 """
-function cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+function cqtkernel(
+    sampling_frequency,
+    frequency_resolution,
+    minimum_frequency,
+    maximum_frequency,
+)
 
     # Derive the umber of frequency channels per octave
-    octave_resolution = 12*frequency_resolution;
+    octave_resolution = 12 * frequency_resolution
 
     # Compute the constant ratio of frequency to resolution (= fk/(fk+1-fk))
-    quality_factor = 1/(2^(1/octave_resolution)-1);
+    quality_factor = 1 / (2^(1 / octave_resolution) - 1)
 
     # Compute the number of frequency channels for the CQT
-    number_frequencies = round(Int, octave_resolution*log2(maximum_frequency/minimum_frequency));
+    number_frequencies = round(
+        Int,
+        octave_resolution * log2(maximum_frequency / minimum_frequency),
+    )
 
     # Compute the window length for the FFT (= longest window for the minimum frequency)
-    fft_length = nextpow(2, ceil(Int, quality_factor*sampling_frequency/minimum_frequency));
+    fft_length = nextpow(
+        2,
+        ceil(Int, quality_factor * sampling_frequency / minimum_frequency),
+    )
 
     # Initialize the (complex) CQT kernel
-    cqt_kernel = zeros(ComplexF64, number_frequencies, fft_length);
+    cqt_kernel = zeros(ComplexF64, number_frequencies, fft_length)
 
     # Loop over the frequency channels
     for i = 1:number_frequencies
 
         # Derive the frequency value in Hz
-        frequency_value = minimum_frequency * 2^((i-1)/octave_resolution);
+        frequency_value = minimum_frequency * 2^((i - 1) / octave_resolution)
 
         # Compute the window length in samples (nearest odd value to center the temporal kernel on 0)
-        window_length = 2*round(Int, quality_factor*sampling_frequency/frequency_value/2)+1;
+        window_length =
+            2 * round(
+                Int,
+                quality_factor * sampling_frequency / frequency_value / 2,
+            ) + 1
 
         # Compute the temporal kernel for the current frequency (odd and symmetric)
-        temporal_kernel = hamming(window_length, "symmetric") .*
-        exp.(2*pi*im*quality_factor*(-(window_length-1)/2:(window_length-1)/2)/window_length)/window_length;
+        temporal_kernel =
+            hamming(window_length, "symmetric") .*
+            exp.(
+                2 *
+                pi *
+                im *
+                quality_factor *
+                (-(window_length - 1)/2:(window_length-1)/2) / window_length,
+            ) / window_length
 
         # Derive the pad width to center the temporal kernels
         pad_width = convert(Int, (fft_length - window_length + 1) / 2)
 
         # Save the current temporal kernel at the center
         # (the zero-padded temporal kernels are not perfectly symmetric anymore because of the even length here)
-        cqt_kernel[i, pad_width + 1: pad_width + window_length] = temporal_kernel
+        cqt_kernel[i, pad_width+1:pad_width+window_length] = temporal_kernel
 
     end
 
@@ -299,13 +336,13 @@ function cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, 
     cqt_kernel = fft(cqt_kernel, 2)
 
     # Make the CQT kernel sparser by zeroing magnitudes below a threshold
-    cqt_kernel[abs.(cqt_kernel).<0.01] .= 0;
+    cqt_kernel[abs.(cqt_kernel).<0.01] .= 0
 
     # Make the CQT kernel sparse by saving it as a compressed sparse column matrix
-    cqt_kernel = sparse(cqt_kernel);
+    cqt_kernel = sparse(cqt_kernel)
 
     # Get the final CQT kernel by using Parseval's theorem
-    cqt_kernel = conj.(cqt_kernel)/fft_length;
+    cqt_kernel = conj.(cqt_kernel) / fft_length
 
 end
 
@@ -350,30 +387,39 @@ plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_reso
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 """
-function cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
+function cqtspectrogram(
+    audio_signal,
+    sampling_frequency,
+    time_resolution,
+    cqt_kernel,
+)
 
     # Derive the number of time samples per time frame
-    step_length = round(Int, sampling_frequency/time_resolution);
+    step_length = round(Int, sampling_frequency / time_resolution)
 
     # Compute the number of time frames
-    number_times = floor(Int, length(audio_signal)/step_length);
+    number_times = floor(Int, length(audio_signal) / step_length)
 
     # Get th number of frequency channels and the FFT length
-    number_frequencies, fft_length = size(cqt_kernel);
+    number_frequencies, fft_length = size(cqt_kernel)
 
     # Zero-pad the signal to center the CQT
-    audio_signal = [zeros(ceil(Int, (fft_length-step_length)/2)); audio_signal;
-    zeros(floor(Int, (fft_length-step_length)/2))];
+    audio_signal = [
+        zeros(ceil(Int, (fft_length - step_length) / 2))
+        audio_signal
+        zeros(floor(Int, (fft_length - step_length) / 2))
+    ]
 
     # Initialize the spectrogram
-    audio_spectrogram = zeros(number_frequencies, number_times);
+    audio_spectrogram = zeros(number_frequencies, number_times)
 
     # Loop over the time frames
     i = 0
     for j = 1:number_times
 
         # Compute the magnitude CQT using the kernel
-        audio_spectrogram[:, j] = abs.(cqt_kernel * fft(audio_signal[i+1:i+fft_length]));
+        audio_spectrogram[:, j] =
+            abs.(cqt_kernel * fft(audio_signal[i+1:i+fft_length]))
         i = i + step_length
 
     end
@@ -425,25 +471,39 @@ plot_object = zaf.cqtchromshow(audio_chromagram, time_resolution, xtick_step);
 heatmap!(title = "CQT chromagram", size = (990, 300))
 ```
 """
-function cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
+function cqtchromagram(
+    audio_signal,
+    sampling_frequency,
+    time_resolution,
+    frequency_resolution,
+    cqt_kernel,
+)
 
     # Compute the CQT spectrogram
-    audio_spectrogram = cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
+    audio_spectrogram = cqtspectrogram(
+        audio_signal,
+        sampling_frequency,
+        time_resolution,
+        cqt_kernel,
+    )
 
     # Get the number of frequency channels and time frames
-    number_frequencies, number_times = size(audio_spectrogram);
+    number_frequencies, number_times = size(audio_spectrogram)
 
     # Derive the number of chroma channels
-    number_chromas = 12*frequency_resolution;
+    number_chromas = 12 * frequency_resolution
 
     # Initialize the chromagram
-    audio_chromagram = zeros(number_chromas, number_times);
+    audio_chromagram = zeros(number_chromas, number_times)
 
     # Loop over the chroma channels
     for i = 1:number_chromas
 
         # Sum the energy of the frequency channels for every chroma
-        audio_chromagram[i, :] = sum(audio_spectrogram[i:number_chromas:number_frequencies, :], dims=1);
+        audio_chromagram[i, :] = sum(
+            audio_spectrogram[i:number_chromas:number_frequencies, :],
+            dims = 1,
+        )
 
     end
 
@@ -458,82 +518,109 @@ audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_c
     Compute the mel frequency cepstrum coefficients (MFFCs).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal (number_samples,)
-- `sample_frequency::Float`: the sample rate in Hz.
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `sample_frequency::Float`: the sample frequency in Hz.
 - `number_filters::Integer`: the number of filters.
 - `number_coefficients::Integer`: the number of coefficients (without the 0th coefficient).
 - `audio_mfcc::Float`: the audio MFCCs (number_times, number_coefficients).
 
 # Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
 ```
-# Audio signal averaged over its channels and sample rate in Hz
-Pkg.add("WAV")
+# Load the modules
+include("./zaf.jl")
+using .zaf
 using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
+using Statistics
+using Plots
 
-#  MFCCs for a given number of filters and coefficients
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Compute the MFCCs with a given number of filters and coefficients
 number_filters = 40;
 number_coefficients = 20;
-include("z.jl")
-audio_mfcc = z.mfcc(audio_signal, sample_rate, number_filters, number_coefficients);
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients);
 
-# Delta and delta-delta MFCCs
-audio_deltamfcc = diff(audio_mfcc, 2);
-audio_deltadeltamfcc = diff(audio_deltamfcc, 2);
+# Compute the delta and delta-delta MFCCs
+audio_dmfcc = diff(audio_mfcc, dims=2);
+audio_ddmfcc = diff(audio_dmfcc, dims=2);
 
-# MFCCs, delta MFCCs, and delta-delta MFCCs displayed in s
-Pkg.add("Plots")
-using Plots
-plotly()
-step_length = convert(Int64, nextpow2(ceil(Int64, 0.04*sample_rate))/2);
-time_signal = round.((1:size(audio_mfcc, 2))*step_length/sample_rate, 2);
-mfcc_plot = plot(time_signal, audio_mfcc', xlabel="Time (s)", title="MFCCs");
-deltamfcc_plot = plot(time_signal[2:end], audio_deltamfcc', xlabel="Time (s)", title="Delta MFCCs");
-deltadeltamfcc_plot = plot(time_signal[3:end], audio_deltadeltamfcc', xlabel="Time (s)", title="Delta-delta MFCCs");
-plot(mfcc_plot, deltamfcc_plot, deltadeltamfcc_plot, layout=(3,1), legend=false)
+# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
+time_resolution = sampling_frequency * size(audio_mfcc, 2)/length(audio_signal)
+
+# Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step)
+plot!(title = "MFCCs")
+plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step)
+plot!(title = "Delta MFCCs")
+plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step)
+plot!(title = "Delta MFCCs")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 """
-function mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
+function mfcc(
+    audio_signal,
+    sampling_frequency,
+    number_filters,
+    number_coefficients,
+)
 
-    # Window duration in seconds, length in samples, and function, and step length in samples
-    window_duration = 0.04;
-    window_length = nextpow2(ceil(Int64, window_duration*sample_rate));
-    window_function = z.hamming(window_length, "periodic");
-    step_length = convert(Int64, window_length/2);
+    # Set the parameters for the STFT
+    window_length = nextpow(2, ceil(Int, 0.04 * sampling_frequency))
+    window_function = zaf.hamming(window_length, "periodic")
+    step_length = convert(Int, window_length / 2)
 
-    # Magnitude spectrogram (without the DC component and the mirrored frequencies)
-    audio_stft = z.stft(audio_signal, window_function, step_length);
-    audio_spectrogram = abs.(audio_stft[2:convert(Int64, window_length/2)+1, :]);
+    # Compute the magnitude spectrogram (without the DC component and the mirrored frequencies)
+    audio_stft = zaf.stft(audio_signal, window_function, step_length)
+    audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length / 2)+1, :])
 
-    # Minimum and maximum mel frequencies
-    mininum_melfrequency = 2595*log10(1+(sample_rate/window_length)/700);
-    maximum_melfrequency = 2595*log10(1+(sample_rate/2)/700);
+    # Compute the minimum and maximum frequencies in mels
+    mininum_melfrequency =
+        2595 * log10(1 + (sampling_frequency / window_length) / 700)
+    maximum_melfrequency = 2595 * log10(1 + (sampling_frequency / 2) / 700)
 
-    # Indices of the overlapping filters (linearly spaced in the mel scale and logarithmically spaced in the linear scale)
-    filter_width = 2*(maximum_melfrequency-mininum_melfrequency)/(number_filters+1);
-    filter_indices = mininum_melfrequency:filter_width/2:maximum_melfrequency;
-    filter_indices = round.(Int64, 700*(10^(filter_indices/2595)-1)*window_length/sample_rate);
+    # Derive the width of the overlapping filters in the mel scale (constant)
+    filter_width =
+        2 * (maximum_melfrequency - mininum_melfrequency) / (number_filters + 1)
+
+    # Compute the indices of the overlapping filters in the mel scale (linearly spaced)
+    filter_indices = [mininum_melfrequency:filter_width/2:maximum_melfrequency;]
+
+    # Derive the indices of the overlapping filters in the linear frequency scale (log spaced)
+    filter_indices =
+        round.(
+            Int,
+            700 * (10 .^ (filter_indices / 2595) .- 1) * window_length /
+            sampling_frequency,
+        )
 
     # Initialize the filter bank
-    filter_bank = zeros(number_filters, convert(Int64, window_length/2));
+    filter_bank = zeros(number_filters, convert(Int, window_length / 2))
 
     # Loop over the filters
-    for filter_index = 1:number_filters
+    for i = 1:number_filters
 
-        # Left and right sides of the triangular overlapping filters (linspace more accurate than triang or bartlett!)
-        filter_bank[filter_index,filter_indices[filter_index]:filter_indices[filter_index+1]] =
-        linspace(0, 1, filter_indices[filter_index+1]-filter_indices[filter_index]+1);
-        filter_bank[filter_index,filter_indices[filter_index+1]:filter_indices[filter_index+2]] =
-        linspace(1, 0, filter_indices[filter_index+2]-filter_indices[filter_index+1]+1);
+        # Compute the left and right sides of the triangular filters (linspace is more accurate than triang or bartlett!)
+        filter_bank[i, filter_indices[i]:filter_indices[i+1]] = range(
+            0,
+            stop = 1,
+            length = filter_indices[i+1] - filter_indices[i] + 1,
+        )
+        filter_bank[i, filter_indices[i+1]:filter_indices[i+2]] = range(
+            1,
+            stop = 0,
+            length = filter_indices[i+2] - filter_indices[i+1] + 1,
+        )
 
     end
 
-    # Discrete cosine transform of the log of the magnitude spectrogram mapped onto the mel scale using the filter bank
-    audio_mfcc = dct(log.(filter_bank*audio_spectrogram+eps()), 1);
+    # Compute the discrete cosine transform of the log magnitude spectrogram mapped onto the mel scale using the filter bank
+    audio_mfcc = dct(log.(filter_bank * audio_spectrogram .+ eps()), 1)
 
-    # The first coefficients (without the 0th) represent the MFCCs
-    audio_mfcc = audio_mfcc[2:number_coefficients+1, :];
+    # Keep only the first coefficients (without the 0th)
+    audio_mfcc = audio_mfcc[2:number_coefficients+1, :]
 
 end
 
@@ -595,73 +682,84 @@ function dct(audio_signal, dct_type)
     if dct_type == 1
 
         # Number of samples per frame
-        window_length = size(audio_signal, 1);
+        window_length = size(audio_signal, 1)
 
         # Pre-processing to make the DCT-I matrix orthogonal (concatenate to avoid the input to change!)
-        audio_signal = [audio_signal[1:1, :]*sqrt(2); audio_signal[2:window_length-1, :];
-        audio_signal[window_length:window_length, :]*sqrt(2)];
+        audio_signal = [
+            audio_signal[1:1, :] * sqrt(2)
+            audio_signal[2:window_length-1, :]
+            audio_signal[window_length:window_length, :] * sqrt(2)
+        ]
 
         # Compute the DCT-I using the FFT
-        audio_dct = [audio_signal; audio_signal[window_length-1:-1:2, :]];
-        audio_dct = fft(audio_dct, 1);
-        audio_dct = real(audio_dct[1:window_length, :])/2;
+        audio_dct = [audio_signal; audio_signal[window_length-1:-1:2, :]]
+        audio_dct = fft(audio_dct, 1)
+        audio_dct = real(audio_dct[1:window_length, :]) / 2
 
         # Post-processing to make the DCT-I matrix orthogonal
-        audio_dct[[1, window_length], :] = audio_dct[[1, window_length], :]/sqrt(2);
-        audio_dct = audio_dct*sqrt(2/(window_length-1));
+        audio_dct[[1, window_length], :] =
+            audio_dct[[1, window_length], :] / sqrt(2)
+        audio_dct = audio_dct * sqrt(2 / (window_length - 1))
 
     elseif dct_type == 2
 
         # Number of samples and frames
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Compute the DCT-II using the FFT
-        audio_dct = zeros(4*window_length, number_frames);
-        audio_dct[2:2:2*window_length, :] = audio_signal;
-        audio_dct[2*window_length+2:2:4*window_length, :] = audio_signal[window_length:-1:1, :];
-        audio_dct = fft(audio_dct, 1);
-        audio_dct = real(audio_dct[1:window_length,:])/2;
+        audio_dct = zeros(4 * window_length, number_frames)
+        audio_dct[2:2:2*window_length, :] = audio_signal
+        audio_dct[2*window_length+2:2:4*window_length, :] =
+            audio_signal[window_length:-1:1, :]
+        audio_dct = fft(audio_dct, 1)
+        audio_dct = real(audio_dct[1:window_length, :]) / 2
 
         # Post-processing to make the DCT-II matrix orthogonal
-        audio_dct[1, :] = audio_dct[1, :]/sqrt(2);
-        audio_dct = audio_dct*sqrt(2/window_length);
+        audio_dct[1, :] = audio_dct[1, :] / sqrt(2)
+        audio_dct = audio_dct * sqrt(2 / window_length)
 
     elseif dct_type == 3
 
         # Number of samples and frames
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Pre-processing to make the DCT-III matrix orthogonal (concatenate to avoid the input to change!)
-        audio_signal = [audio_signal[1:1, :]*sqrt(2); audio_signal[2:window_length, :]];
+        audio_signal =
+            [audio_signal[1:1, :] * sqrt(2); audio_signal[2:window_length, :]]
 
         # Compute the DCT-III using the FFT
-        audio_dct = zeros(4*window_length, number_frames);
-        audio_dct[1:window_length, :] = audio_signal;
-        audio_dct[window_length+2:2*window_length+1, :] = -audio_signal[window_length:-1:1, :];
-        audio_dct[2*window_length+2:3*window_length, :] = -audio_signal[2:window_length, :];
-        audio_dct[3*window_length+2:4*window_length, :] = audio_signal[window_length:-1:2, :];
-        audio_dct = fft(audio_dct, 1);
-        audio_dct = real(audio_dct[2:2:2*window_length, :])/4;
+        audio_dct = zeros(4 * window_length, number_frames)
+        audio_dct[1:window_length, :] = audio_signal
+        audio_dct[window_length+2:2*window_length+1, :] =
+            -audio_signal[window_length:-1:1, :]
+        audio_dct[2*window_length+2:3*window_length, :] =
+            -audio_signal[2:window_length, :]
+        audio_dct[3*window_length+2:4*window_length, :] =
+            audio_signal[window_length:-1:2, :]
+        audio_dct = fft(audio_dct, 1)
+        audio_dct = real(audio_dct[2:2:2*window_length, :]) / 4
 
         # Post-processing to make the DCT-III matrix orthogonal
-        audio_dct = audio_dct*sqrt(2/window_length);
+        audio_dct = audio_dct * sqrt(2 / window_length)
 
     elseif dct_type == 4
 
         # Number of samples and frames
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Compute the DCT-IV using the FFT
-        audio_dct = zeros(8*window_length, number_frames);
-        audio_dct[2:2:2*window_length, :] = audio_signal;
-        audio_dct[2*window_length+2:2:4*window_length, :] = -audio_signal[window_length:-1:1, :];
-        audio_dct[4*window_length+2:2:6*window_length, :] = -audio_signal;
-        audio_dct[6*window_length+2:2:8*window_length, :] = audio_signal[window_length:-1:1, :];
-        audio_dct = fft(audio_dct, 1);
-        audio_dct = real(audio_dct[2:2:2*window_length, :])/4;
+        audio_dct = zeros(8 * window_length, number_frames)
+        audio_dct[2:2:2*window_length, :] = audio_signal
+        audio_dct[2*window_length+2:2:4*window_length, :] =
+            -audio_signal[window_length:-1:1, :]
+        audio_dct[4*window_length+2:2:6*window_length, :] = -audio_signal
+        audio_dct[6*window_length+2:2:8*window_length, :] =
+            audio_signal[window_length:-1:1, :]
+        audio_dct = fft(audio_dct, 1)
+        audio_dct = real(audio_dct[2:2:2*window_length, :]) / 4
 
         # Post-processing to make the DCT-IV matrix orthogonal
-        audio_dct = audio_dct*sqrt(2/window_length);
+        audio_dct = audio_dct * sqrt(2 / window_length)
 
     end
 
@@ -724,73 +822,84 @@ dst3_plot, idst3_plot, ddst3_plot, dst4_plot, idst4_plot, ddst4_plot, layout=(4,
 """
 function dst(audio_signal, dst_type)
 
-    if dst_type==1
+    if dst_type == 1
 
         # Number of samples per frame
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Compute the DST-I using the FFT
-        audio_dst = [zeros(1, number_frames); audio_signal;
-        zeros(1, number_frames); -audio_signal[window_length:-1:1, :]];
-        audio_dst = fft(audio_dst, 1);
-        audio_dst = -imag(audio_dst[2:window_length+1, :])/2;
+        audio_dst = [
+            zeros(1, number_frames)
+            audio_signal
+            zeros(1, number_frames)
+            -audio_signal[window_length:-1:1, :]
+        ]
+        audio_dst = fft(audio_dst, 1)
+        audio_dst = -imag(audio_dst[2:window_length+1, :]) / 2
 
         # Post-processing to make the DST-I matrix orthogonal
-        audio_dst = audio_dst*sqrt(2/(window_length+1));
+        audio_dst = audio_dst * sqrt(2 / (window_length + 1))
 
-    elseif dst_type==2
+    elseif dst_type == 2
 
         # Number of samples per frame
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Compute the DST-II using the FFT
-        audio_dst = zeros(4*window_length, number_frames);
-        audio_dst[2:2:2*window_length, :] = audio_signal;
-        audio_dst[2*window_length+2:2:4*window_length, :] = -audio_signal[window_length:-1:1, :];
-        audio_dst = fft(audio_dst, 1);
-        audio_dst = -imag(audio_dst[2:window_length+1, :])/2;
+        audio_dst = zeros(4 * window_length, number_frames)
+        audio_dst[2:2:2*window_length, :] = audio_signal
+        audio_dst[2*window_length+2:2:4*window_length, :] =
+            -audio_signal[window_length:-1:1, :]
+        audio_dst = fft(audio_dst, 1)
+        audio_dst = -imag(audio_dst[2:window_length+1, :]) / 2
 
         # Post-processing to make the DST-II matrix orthogonal
-        audio_dst[window_length, :] = audio_dst[window_length, :]/sqrt(2);
-        audio_dst = audio_dst*sqrt(2/window_length);
+        audio_dst[window_length, :] = audio_dst[window_length, :] / sqrt(2)
+        audio_dst = audio_dst * sqrt(2 / window_length)
 
-    elseif dst_type==3
+    elseif dst_type == 3
 
         # Number of samples per frame
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Pre-processing to make the DST-III matrix orthogonal (concatenate to avoid the input to change!)
-        audio_signal = [audio_signal[1:window_length-1, :];
-        audio_signal[window_length:window_length, :]*sqrt(2)];
+        audio_signal = [
+            audio_signal[1:window_length-1, :]
+            audio_signal[window_length:window_length, :] * sqrt(2)
+        ]
 
         # Compute the DST-III using the FFT
-        audio_dst = zeros(4*window_length, number_frames);
-        audio_dst[2:window_length+1, :] = audio_signal;
-        audio_dst[window_length+2:2*window_length, :] = audio_signal[window_length-1:-1:1, :];
-        audio_dst[2*window_length+2:3*window_length+1, :] = -audio_signal;
-        audio_dst[3*window_length+2:4*window_length, :] = -audio_signal[window_length-1:-1:1, :];
-        audio_dst = fft(audio_dst, 1);
-        audio_dst = -imag(audio_dst[2:2:2*window_length, :])/4;
+        audio_dst = zeros(4 * window_length, number_frames)
+        audio_dst[2:window_length+1, :] = audio_signal
+        audio_dst[window_length+2:2*window_length, :] =
+            audio_signal[window_length-1:-1:1, :]
+        audio_dst[2*window_length+2:3*window_length+1, :] = -audio_signal
+        audio_dst[3*window_length+2:4*window_length, :] =
+            -audio_signal[window_length-1:-1:1, :]
+        audio_dst = fft(audio_dst, 1)
+        audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
 
         # Post-processing to make the DST-III matrix orthogonal
-        audio_dst = audio_dst*sqrt(2/window_length);
+        audio_dst = audio_dst * sqrt(2 / window_length)
 
-    elseif dst_type==4
+    elseif dst_type == 4
 
         # Number of samples per frame
-        window_length, number_frames = size(audio_signal);
+        window_length, number_frames = size(audio_signal)
 
         # Compute the DST-IV using the FFT
-        audio_dst = zeros(8*window_length, number_frames);
-        audio_dst[2:2:2*window_length, :] = audio_signal;
-        audio_dst[2*window_length+2:2:4*window_length, :] = audio_signal[window_length:-1:1, :];
-        audio_dst[4*window_length+2:2:6*window_length, :] = -audio_signal;
-        audio_dst[6*window_length+2:2:8*window_length, :] = -audio_signal[window_length:-1:1, :];
-        audio_dst = fft(audio_dst, 1);
-        audio_dst = -imag(audio_dst[2:2:2*window_length, :])/4;
+        audio_dst = zeros(8 * window_length, number_frames)
+        audio_dst[2:2:2*window_length, :] = audio_signal
+        audio_dst[2*window_length+2:2:4*window_length, :] =
+            audio_signal[window_length:-1:1, :]
+        audio_dst[4*window_length+2:2:6*window_length, :] = -audio_signal
+        audio_dst[6*window_length+2:2:8*window_length, :] =
+            -audio_signal[window_length:-1:1, :]
+        audio_dst = fft(audio_dst, 1)
+        audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
 
         # Post-processing to make the DST-IV matrix orthogonal
-        audio_dst = audio_dst*sqrt(2/window_length);
+        audio_dst = audio_dst * sqrt(2 / window_length)
 
     end
 
@@ -837,35 +946,54 @@ heatmap(x_labels, y_labels, 20*log10.(abs.(audio_mdct)))
 function mdct(audio_signal, window_function)
 
     # Number of samples and window length
-    number_samples = length(audio_signal);
-    window_length = length(window_function);
+    number_samples = length(audio_signal)
+    window_length = length(window_function)
 
     # Number of time frames
-    number_times = ceil(Int64, 2*number_samples/window_length)+1;
+    number_times = ceil(Int64, 2 * number_samples / window_length) + 1
 
     # Pre and post zero-padding of the signal
-    audio_signal = [zeros(convert(Int64, window_length/2), 1); audio_signal;
-    zeros(convert(Int64, (number_times+1)*window_length/2-number_samples), 1)];
+    audio_signal = [
+        zeros(convert(Int64, window_length / 2), 1)
+        audio_signal
+        zeros(
+            convert(
+                Int64,
+                (number_times + 1) * window_length / 2 - number_samples,
+            ),
+            1,
+        )
+    ]
 
     # Initialize the MDCT
-    audio_mdct = zeros(convert(Int64, window_length/2), number_times);
+    audio_mdct = zeros(convert(Int64, window_length / 2), number_times)
 
     # Pre and post-processing arrays
-    preprocessing_array = exp.(-im*pi/window_length*(0:window_length-1));
-    postprocessing_array = exp.(-im*pi/window_length*(window_length/2+1)*(0.5:window_length/2-0.5));
+    preprocessing_array = exp.(-im * pi / window_length * (0:window_length-1))
+    postprocessing_array =
+        exp.(
+            -im * pi / window_length *
+            (window_length / 2 + 1) *
+            (0.5:window_length/2-0.5),
+        )
 
     # Loop over the time frames
     for time_index = 1:number_times
 
         # Window the signal
-        sample_index = convert(Int64, window_length/2)*(time_index-1);
-        audio_segment = audio_signal[1+sample_index:window_length+sample_index].*window_function;
+        sample_index = convert(Int64, window_length / 2) * (time_index - 1)
+        audio_segment =
+            audio_signal[1+sample_index:window_length+sample_index] .*
+            window_function
 
         # FFT of the audio segment after pre-processing
-        audio_segment = fft(audio_segment.*preprocessing_array, 1);
+        audio_segment = fft(audio_segment .* preprocessing_array, 1)
 
         # Truncate to the first half before post-processing
-        audio_mdct[:, time_index] = real(audio_segment[1:convert(Int64, window_length/2)].*postprocessing_array);
+        audio_mdct[:, time_index] = real(
+            audio_segment[1:convert(Int64, window_length / 2)] .*
+            postprocessing_array,
+        )
 
     end
 
@@ -916,38 +1044,54 @@ plot(audio_plot, audio2_plot, error_plot, layout=(3,1), legend=false)
 function imdct(audio_mdct, window_function)
 
     # Number of frequency channels and time frames
-    number_frequencies, number_times = size(audio_mdct);
+    number_frequencies, number_times = size(audio_mdct)
 
     # Number of samples for the signal
-    number_samples = number_frequencies*(number_times+1);
+    number_samples = number_frequencies * (number_times + 1)
 
     # Initialize the audio signal
-    audio_signal = zeros(number_samples, 1);
+    audio_signal = zeros(number_samples, 1)
 
     # Pre and post-processing arrays
-    preprocessing_array = exp.(-im*pi/(2*number_frequencies)*(number_frequencies+1)*(0:number_frequencies-1));
-    postprocessing_array = exp.(-im*pi/(2*number_frequencies)*
-    (0.5+number_frequencies/2:2*number_frequencies+number_frequencies/2-0.5))/number_frequencies;
+    preprocessing_array =
+        exp.(
+            -im * pi / (2 * number_frequencies) *
+            (number_frequencies + 1) *
+            (0:number_frequencies-1),
+        )
+    postprocessing_array =
+        exp.(
+            -im * pi / (2 * number_frequencies) * (
+                0.5+number_frequencies/2:2*number_frequencies+number_frequencies/2-0.5
+            ),
+        ) / number_frequencies
 
     # FFT of the frames after pre-processing
 
-    audio_mdct = fft([audio_mdct.*preprocessing_array;zeros(number_frequencies,number_times)], 1);
+    audio_mdct = fft(
+        [
+            audio_mdct .* preprocessing_array
+            zeros(number_frequencies, number_times)
+        ],
+        1,
+    )
 
     # Apply the window to the frames after post-processing
-    audio_mdct = 2*real(audio_mdct.*postprocessing_array).*window_function;
+    audio_mdct = 2 * real(audio_mdct .* postprocessing_array) .* window_function
 
     # Loop over the time frames
     for time_index = 1:number_times
 
         # Recover the signal thanks to the time-domain aliasing cancellation (TDAC) principle
-        sample_index = (time_index-1)*number_frequencies+1;
+        sample_index = (time_index - 1) * number_frequencies + 1
         audio_signal[sample_index:sample_index+2*number_frequencies-1] =
-        audio_signal[sample_index:sample_index+2*number_frequencies-1]+audio_mdct[:, time_index];
+            audio_signal[sample_index:sample_index+2*number_frequencies-1] +
+            audio_mdct[:, time_index]
 
     end
 
     # Remove the pre and post zero-padding
-    audio_signal = audio_signal[number_frequencies+1:end-number_frequencies];
+    audio_signal = audio_signal[number_frequencies+1:end-number_frequencies]
 
     return audio_signal
 
@@ -963,13 +1107,16 @@ Compute the Hamming window.
 - `window_sampling::Char="symmetric"`: the window sampling method ("symmetric" or "periodic").
 - `window_function::Float`: the window function (window_length,).
 """
-function hamming(window_length, window_sampling="symmetric")
+function hamming(window_length, window_sampling = "symmetric")
 
     # Compute the Hamming window, symmetric for filter design and periodic for spectral analysis
     if window_sampling == "symmetric"
-        window_function = 0.54 .- 0.46*cos.(2*pi*(0:window_length-1)/(window_length-1));
+        window_function =
+            0.54 .-
+            0.46 * cos.(2 * pi * (0:window_length-1) / (window_length - 1))
     elseif window_sampling == "periodic"
-        window_function = 0.54 .- 0.46*cos.(2*pi*(0:window_length-1)/window_length);
+        window_function =
+            0.54 .- 0.46 * cos.(2 * pi * (0:window_length-1) / window_length)
     end
 
 end
@@ -987,11 +1134,16 @@ Compute the Kaiser window.
 function kaiser(window_length, alpha_value)
 
     # Compute the Kaiser window using the modified Bessel function of the first kind
-    window_function = zeros(window_length);
+    window_function = zeros(window_length)
     for window_index = 1:window_length
-        window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1).^2));
+        window_function[window_index] = besseli(
+            0,
+            alpha_value * sqrt(
+                1 - (2 * (window_index - 1) / (window_length - 1) - 1) .^ 2,
+            ),
+        )
     end
-    window_function = window_function/besseli(0, alpha_value);
+    window_function = window_function / besseli(0, alpha_value)
 
 end
 
@@ -1001,23 +1153,34 @@ end
 Plot a signal in seconds.
 
 # Arguments:
-- `audio_signal::Float`: the audio signal (number_samples,).
+- `audio_signal::Float`: the audio signal (number_samples, number_channels).
 - `sampling_frequency::Float`: the sampling frequency from the original signal in Hz.
 - `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
 - `plot_object:Plots:` the plot object.
 """
-function sigplot(audio_signal, sampling_frequency, xtick_step=1)
+function sigplot(audio_signal, sampling_frequency, xtick_step = 1)
 
     # Get the number of samples
-    number_samples = size(audio_signal, 1);
+    number_samples = size(audio_signal, 1)
 
     # Prepare the tick locations and labels for the x-axis
-    xtick_locations = [xtick_step * sampling_frequency:xtick_step * sampling_frequency:number_samples;];
-    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_samples / sampling_frequency;]);
+    xtick_locations = [
+        xtick_step*sampling_frequency:xtick_step*sampling_frequency:number_samples;
+    ]
+    xtick_labels = convert(
+        Array{Int},
+        [xtick_step:xtick_step:number_samples/sampling_frequency;],
+    )
 
     # Plot the signal in seconds
-    plot_object = plot(audio_signal, legend = false, fmt = :png,
-    xlims = (0, number_samples), xticks = (xtick_locations, xtick_labels), xlabel = "Time (s)");
+    plot_object = plot(
+        audio_signal,
+        legend = false,
+        fmt = :png,
+        xlims = (0, number_samples),
+        xticks = (xtick_locations, xtick_labels),
+        xlabel = "Time (s)",
+    )
 
 end
 
@@ -1034,32 +1197,47 @@ Display a spectrogram in dB, seconds, and Hz.
 - `ytick_step::Integer=1000`: the step for the y-axis ticks in Hz (default: 1000 Hz).
 - `plot_object:Plots:` the plot object.
 """
-function specshow(audio_spectrogram, number_samples, sampling_frequency,
-    xtick_step=1, ytick_step=1000)
+function specshow(
+    audio_spectrogram,
+    number_samples,
+    sampling_frequency,
+    xtick_step = 1,
+    ytick_step = 1000,
+)
 
     # Get the number of frequency channels and time frames
-    number_frequencies, number_times = size(audio_spectrogram);
+    number_frequencies, number_times = size(audio_spectrogram)
 
     # Derive the number of Hertz and seconds
-    number_hertz = sampling_frequency / 2;
-    number_seconds = number_samples / sampling_frequency;
+    number_hertz = sampling_frequency / 2
+    number_seconds = number_samples / sampling_frequency
 
     # Derive the number of time frames per second and the number of frequency channels per Hz
-    time_resolution = number_times / number_seconds;
-    frequency_resolution = number_frequencies / number_hertz;
+    time_resolution = number_times / number_seconds
+    frequency_resolution = number_frequencies / number_hertz
 
     # Prepare the tick locations and labels for the x-axis
-    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
-    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_seconds;]);
+    xtick_locations =
+        [xtick_step*time_resolution:xtick_step*time_resolution:number_times;]
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_seconds;])
 
     # Prepare the tick locations and labels for the y-axis
-    ytick_locations = [ytick_step * frequency_resolution:ytick_step * frequency_resolution:number_frequencies;];
-    ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;]);
+    ytick_locations = [
+        ytick_step*frequency_resolution:ytick_step*frequency_resolution:number_frequencies;
+    ]
+    ytick_labels = convert(Array{Int}, [ytick_step:ytick_step:number_hertz;])
 
     # Display the spectrogram in dB, seconds, and Hz
-    plot_object = heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
-    xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
-    xlabel = "Time (s)", ylabel = "Frequency (Hz)");
+    plot_object = heatmap(
+        20 * log10.(audio_spectrogram),
+        fillcolor = :jet,
+        legend = false,
+        fmt = :png,
+        xticks = (xtick_locations, xtick_labels),
+        yticks = (ytick_locations, ytick_labels),
+        xlabel = "Time (s)",
+        ylabel = "Frequency (Hz)",
+    )
 
 end
 
@@ -1077,28 +1255,51 @@ Display a CQT spectrogram in dB and seconds, and Hz.
 - `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
 - `plot_object:Plots:` the plot object.
 """
-function cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution,
-    minimum_frequency, maximum_frequency, xtick_step=1)
+function cqtspecshow(
+    audio_spectrogram,
+    time_resolution,
+    frequency_resolution,
+    minimum_frequency,
+    maximum_frequency,
+    xtick_step = 1,
+)
 
     # Get the number of frequency channels and time frames
-    number_frequencies, number_times = size(audio_spectrogram);
+    number_frequencies, number_times = size(audio_spectrogram)
 
     # Compute the octave resolution and number of frequencies
-    octave_resolution = 12 * frequency_resolution;
-    number_frequencies = round(Int, octave_resolution * log2(maximum_frequency / minimum_frequency))
+    octave_resolution = 12 * frequency_resolution
+    number_frequencies = round(
+        Int,
+        octave_resolution * log2(maximum_frequency / minimum_frequency),
+    )
 
     # Prepare the tick locations and labels for the x-axis
-    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
-    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_times/time_resolution;]);
+    xtick_locations =
+        [xtick_step*time_resolution:xtick_step*time_resolution:number_times;]
+    xtick_labels = convert(
+        Array{Int},
+        [xtick_step:xtick_step:number_times/time_resolution;],
+    )
 
     # Prepare the tick locations and labels for the y-axis
-    ytick_locations = [0:octave_resolution:number_frequencies;];
-    ytick_labels = convert(Array{Int}, minimum_frequency * 2 .^ (ytick_locations/octave_resolution));
+    ytick_locations = [0:octave_resolution:number_frequencies;]
+    ytick_labels = convert(
+        Array{Int},
+        minimum_frequency * 2 .^ (ytick_locations / octave_resolution),
+    )
 
     # Display the spectrogram in dB, seconds, and Hz
-    plot_object = heatmap(20*log10.(audio_spectrogram), fillcolor = :jet, legend = false, fmt = :png,
-    xticks = (xtick_locations, xtick_labels), yticks = (ytick_locations, ytick_labels),
-    xlabel = "Time (s)", ylabel = "Frequency (Hz)");
+    plot_object = heatmap(
+        20 * log10.(audio_spectrogram),
+        fillcolor = :jet,
+        legend = false,
+        fmt = :png,
+        xticks = (xtick_locations, xtick_labels),
+        yticks = (ytick_locations, ytick_labels),
+        xlabel = "Time (s)",
+        ylabel = "Frequency (Hz)",
+    )
 
 end
 
@@ -1113,18 +1314,29 @@ Display a CQT chromagram in seconds.
 - `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
 - `plot_object:Plots:` the plot object.
 """
-function cqtchromshow(audio_chromagram, time_resolution, xtick_step=1)
+function cqtchromshow(audio_chromagram, time_resolution, xtick_step = 1)
 
     # Get the number of time frames
-    number_times = size(audio_chromagram, 2);
+    number_times = size(audio_chromagram, 2)
 
     # Prepare the tick locations and labels for the x-axis
-    xtick_locations = [xtick_step * time_resolution:xtick_step * time_resolution:number_times;];
-    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_times/time_resolution;]);
+    xtick_locations =
+        [xtick_step*time_resolution:xtick_step*time_resolution:number_times;]
+    xtick_labels = convert(
+        Array{Int},
+        [xtick_step:xtick_step:number_times/time_resolution;],
+    )
 
     # Display the chromagram in seconds
-    plot_object = heatmap(audio_chromagram, fillcolor = :jet, legend = false, fmt = :png,
-    xticks = (xtick_locations, xtick_labels), xlabel = "Time (s)", ylabel = "Chroma");
+    plot_object = heatmap(
+        audio_chromagram,
+        fillcolor = :jet,
+        legend = false,
+        fmt = :png,
+        xticks = (xtick_locations, xtick_labels),
+        xlabel = "Time (s)",
+        ylabel = "Chroma",
+    )
 
 end
 
