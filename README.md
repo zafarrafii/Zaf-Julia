@@ -365,7 +365,7 @@ Output:
     audio_dct: audio DCT (number_frequencies,)
 ```
 
-#### Example: compute the 4 different DCTs and compare them to SciPy's DCTs
+#### Example: compute the 4 different DCTs and compare them to FFTW's DCTs
 
 ```
 here
