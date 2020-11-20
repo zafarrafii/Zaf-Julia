@@ -27,7 +27,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/19/20
+    11/20/20
 """
 module zaf
 
@@ -37,7 +37,7 @@ export stft,
     istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst, mdct, imdct
 
 """
-    audio_stft = zaf.stft(audio_signal, window_function, step_length);
+    audio_stft = zaf.stft(audio_signal, window_function, step_length)
 
 Compute the short-time Fourier transform (STFT).
 
@@ -57,20 +57,20 @@ using Statistics
 using Plots
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, dims=2);
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
 
 # Set the window duration in seconds (audio is stationary around 40 milliseconds)
 window_duration = 0.04;
 
 # Derive the window length in samples (use powers of 2 for faster FFT and constant overlap-add (COLA))
-window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency));
+window_length = nextpow(2, ceil(Int, window_duration*sampling_frequency))
 
 # Compute the window function (periodic Hamming window for COLA)
-window_function = zaf.hamming(window_length, "periodic");
+window_function = zaf.hamming(window_length, "periodic")
 
 # Set the step length in samples (half of the window length for COLA)
-step_length = convert(Int, window_length/2);
+step_length = convert(Int, window_length/2)
 
 # Compute the STFT
 audio_stft = zaf.stft(audio_signal, window_function, step_length)
@@ -79,12 +79,12 @@ audio_stft = zaf.stft(audio_signal, window_function, step_length)
 audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 
 # Magnitude spectrogram (without the DC component and the mirrored frequencies)
-audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1,:]);
+audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 
 # Display the spectrogram in dB, seconds, and Hz
 xtick_step = 1
 ytick_step = 1000
-plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step);
+plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -136,7 +136,7 @@ function stft(audio_signal, window_function, step_length)
 end
 
 """
-    audio_istft = zaf.istft(audio_signal, window_function, step_length);
+    audio_istft = zaf.istft(audio_signal, window_function, step_length)
 
 Compute the inverse short-time Fourier transform (STFT).
 
@@ -155,49 +155,49 @@ using WAV
 using Plots
 
 # Read the (stereo) audio signal with its sampling frequency in Hz
-audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal, sampling_frequency = wavread("audio_file.wav")
 
 # Set the parameters for the STFT
-window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency));
-window_function = zaf.hamming(window_length, "periodic");
-step_length = convert(Int, window_length/2);
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+window_function = zaf.hamming(window_length, "periodic")
+step_length = convert(Int, window_length/2)
 
 # Compute the STFTs for the left and right channels
-audio_stft1 = zaf.stft(audio_signal[:,1], window_function, step_length);
-audio_stft2 = zaf.stft(audio_signal[:,2], window_function, step_length);
+audio_stft1 = zaf.stft(audio_signal[:,1], window_function, step_length)
+audio_stft2 = zaf.stft(audio_signal[:,2], window_function, step_length)
 
 # Derive the magnitude spectrograms (with DC component) for the left and right channels
-audio_spectrogram1 = abs.(audio_stft1[1:convert(Int, window_length/2)+1, :]);
-audio_spectrogram2 = abs.(audio_stft2[1:convert(Int, window_length/2)+1, :]);
+audio_spectrogram1 = abs.(audio_stft1[1:convert(Int, window_length/2)+1, :])
+audio_spectrogram2 = abs.(audio_stft2[1:convert(Int, window_length/2)+1, :])
 
 # Estimate the time-frequency masks for the left and right channels for the center
-center_mask1 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram1;
-center_mask2 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram2;
+center_mask1 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram1
+center_mask2 = min.(audio_spectrogram1, audio_spectrogram2)./audio_spectrogram2
 
 # Derive the STFTs for the left and right channels for the center (with mirrored frequencies)
-center_stft1 = [center_mask1; center_mask1[convert(Int, window_length/2):-1:2,:]].*audio_stft1;
-center_stft2 = [center_mask2; center_mask2[convert(Int, window_length/2):-1:2,:]].*audio_stft2;
+center_stft1 = [center_mask1; center_mask1[convert(Int, window_length/2):-1:2,:]] .* audio_stft1
+center_stft2 = [center_mask2; center_mask2[convert(Int, window_length/2):-1:2,:]] .* audio_stft2
 
 # Synthesize the signals for the left and right channels for the center
-center_signal1 = zaf.istft(center_stft1, window_function, step_length);
-center_signal2 = zaf.istft(center_stft2, window_function, step_length);
+center_signal1 = zaf.istft(center_stft1, window_function, step_length)
+center_signal2 = zaf.istft(center_stft2, window_function, step_length)
 
 # Derive the final stereo center and sides signals
-center_signal = hcat(center_signal1, center_signal2);
-center_signal = center_signal[1:size(audio_signal, 1), :];
+center_signal = [center_signal1 center_signal2];
+center_signal = center_signal[1:size(audio_signal, 1), :]
 sides_signal = audio_signal-center_signal;
 
 # Write the center and sides signals
-wavwrite(center_signal, "center_signal.wav", Fs=sampling_frequency);
-wavwrite(sides_signal, "sides_signal.wav", Fs=sampling_frequency);
+wavwrite(center_signal, "center_signal.wav", Fs=sampling_frequency)
+wavwrite(sides_signal, "sides_signal.wav", Fs=sampling_frequency)
 
 # Display the original, center, and sides signals in seconds
 xtick_step = 1
-plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step);
+plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step)
 plot!(ylims = (-1, 1), title = "Original signal")
-plot_object2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step);
+plot_object2 = zaf.sigplot(center_signal, sampling_frequency, xtick_step)
 plot!(ylims = (-1, 1), title = "Center signal")
-plot_object3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step);
+plot_object3 = zaf.sigplot(sides_signal, sampling_frequency, xtick_step)
 plot!(ylims = (-1, 1), title = "Sides signal")
 plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
@@ -238,7 +238,7 @@ function istft(audio_stft, window_function, step_length)
 end
 
 """
-    cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+    cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
 Compute the constant-Q transform (CQT) kernel.
 
@@ -257,13 +257,13 @@ using .zaf
 using Plots
 
 # Set the parameters for the CQT kernel
-sampling_frequency = 44100;
-frequency_resolution = 2;
-minimum_frequency = 55;
-maximum_frequency = sampling_frequency/2;
+sampling_frequency = 44100
+frequency_resolution = 2
+minimum_frequency = 55
+maximum_frequency = sampling_frequency/2
 
 # Compute the CQT kernel
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
 # Display the magnitude CQT kernel
 heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300),
@@ -347,7 +347,7 @@ function cqtkernel(
 end
 
 """
-    audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
+    audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
@@ -368,22 +368,23 @@ using Statistics
 using Plots
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, dims=2);
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
 
 # Compute the CQT kernel using some parameters
-frequency_resolution = 2;
-minimum_frequency = 55;
-maximum_frequency = 3520;
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+frequency_resolution = 2
+minimum_frequency = 55
+maximum_frequency = 3520
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
 # Compute the (magnitude) CQT spectrogram using the kernel
-time_resolution = 25;
-audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel);
+time_resolution = 25
+audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 # Display the CQT spectrogram in dB, seconds, and Hz
 xtick_step = 1
-plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step);
+plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution,
+    minimum_frequency, maximum_frequency, xtick_step)
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -430,7 +431,7 @@ function cqtspectrogram(
 end
 
 """
-    audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel);
+    audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
 
 Compute the constant-Q transform (CQT) chromagram using a kernel
 
@@ -452,22 +453,22 @@ using Statistics
 using Plots
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, dims=2);
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
 
 # Compute the CQT kernel using some parameters
-frequency_resolution = 2;
-minimum_frequency = 55;
-maximum_frequency = 3520;
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency);
+frequency_resolution = 2
+minimum_frequency = 55
+maximum_frequency = 3520
+cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
 # Compute the CQT chromagram
-time_resolution = 25;
-audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel);
+time_resolution = 25
+audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
 
 # Display the CQT chromagram in seconds
 xtick_step = 1
-plot_object = zaf.cqtchromshow(audio_chromagram, time_resolution, xtick_step);
+plot_object = zaf.cqtchromshow(audio_chromagram, time_resolution, xtick_step)
 heatmap!(title = "CQT chromagram", size = (990, 300))
 ```
 """
@@ -513,7 +514,7 @@ function cqtchromagram(
 end
 
 """
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients);
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
 
     Compute the mel frequency cepstrum coefficients (MFFCs).
 
@@ -534,29 +535,26 @@ using Statistics
 using Plots
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, dims=2);
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
 
 # Compute the MFCCs with a given number of filters and coefficients
-number_filters = 40;
-number_coefficients = 20;
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients);
+number_filters = 40
+number_coefficients = 20
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
 
 # Compute the delta and delta-delta MFCCs
-audio_dmfcc = diff(audio_mfcc, dims=2);
-audio_ddmfcc = diff(audio_dmfcc, dims=2);
+audio_dmfcc = diff(audio_mfcc, dims=2)
+audio_ddmfcc = diff(audio_dmfcc, dims=2)
 
 # Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
-time_resolution = sampling_frequency * size(audio_mfcc, 2)/length(audio_signal)
+time_resolution = sampling_frequency*size(audio_mfcc, 2)/length(audio_signal)
 
 # Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
 xtick_step = 1
-plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step)
-plot!(title = "MFCCs")
-plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step)
-plot!(title = "Delta MFCCs")
-plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step)
-plot!(title = "Delta MFCCs")
+plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step); plot!(title = "MFCCs")
+plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
+plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
 plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 """
@@ -617,7 +615,7 @@ function mfcc(
     end
 
     # Compute the discrete cosine transform of the log magnitude spectrogram mapped onto the mel scale using the filter bank
-    audio_mfcc = dct(log.(filter_bank * audio_spectrogram .+ eps()), 1)
+    audio_mfcc = FFTW.dct(log.(filter_bank * audio_spectrogram .+ eps()), 1)
 
     # Keep only the first coefficients (without the 0th)
     audio_mfcc = audio_mfcc[2:number_coefficients+1, :]
@@ -645,18 +643,18 @@ using FFTW
 using Plots
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, dims=2);
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
 
 # Get an audio segment for a given window length
-window_length = 1024;
-audio_segment = audio_signal[1:window_length];
+window_length = 1024
+audio_segment = audio_signal[1:window_length]
 
 # Compute the DCT-I, II, III, and IV
-audio_dct1 = zaf.dct(audio_segment, 1);
-audio_dct2 = zaf.dct(audio_segment, 2);
-audio_dct3 = zaf.dct(audio_segment, 3);
-audio_dct4 = zaf.dct(audio_segment, 4);
+audio_dct1 = zaf.dct(audio_segment, 1)
+audio_dct2 = zaf.dct(audio_segment, 2)
+audio_dct3 = zaf.dct(audio_segment, 3)
+audio_dct4 = zaf.dct(audio_segment, 4)
 
 # Compute FFTW's DCT-I, II, III, and IV (orthogonalized)
 audio_segment2 = copy(audio_segment)
@@ -678,21 +676,21 @@ fftw_dct4 = FFTW.r2r(audio_segment, FFTW.REDFT11)
 fftw_dct4 = fftw_dct4/2 * sqrt(2/window_length)
 
 # Plot the DCT-I, II, III, and IV, FFTW's versions, and their differences (using yformatter because of precision issue in ticks)
-dct1_plot = plot(audio_dct1, title="DCT-I");
-dct2_plot = plot(audio_dct2, title="DCT-II");
-dct3_plot = plot(audio_dct3, title="DCT-III");
-dct4_plot = plot(audio_dct4, title="DCT-IV");
-dct1_plot2 = plot(audio_dct1, title="FFTW's DCT-I");
-dct2_plot2 = plot(audio_dct2, title="FFTW's DCT-II");
-dct3_plot2 = plot(audio_dct3, title="FFTW's DCT-III");
-dct4_plot2 = plot(audio_dct4, title="FFTW's DCT-IV");
-diff1_plot = plot(audio_dct1-fftw_dct1, title="DCT-I - FFTW's DCT-I");
-diff2_plot = plot(audio_dct2-fftw_dct2, title="DCT-II - FFTW's DCT-II", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
-diff3_plot = plot(audio_dct3-fftw_dct3, title="DCT-III - FFTW's DCT-III", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
-diff4_plot = plot(audio_dct4-fftw_dct4, title="DCT-IV - FFTW's DCT-IV", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+dct1_plot = plot(audio_dct1, title = "DCT-I");
+dct2_plot = plot(audio_dct2, title = "DCT-II");
+dct3_plot = plot(audio_dct3, title = "DCT-III");
+dct4_plot = plot(audio_dct4, title = "DCT-IV");
+dct1_plot2 = plot(audio_dct1, title = "FFTW's DCT-I");
+dct2_plot2 = plot(audio_dct2, title = "FFTW's DCT-II");
+dct3_plot2 = plot(audio_dct3, title = "FFTW's DCT-III");
+dct4_plot2 = plot(audio_dct4, title = "FFTW's DCT-IV");
+diff1_plot = plot(audio_dct1-fftw_dct1, title = "DCT-I - FFTW's DCT-I");
+diff2_plot = plot(audio_dct2-fftw_dct2, title = "DCT-II - FFTW's DCT-II", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+diff3_plot = plot(audio_dct3-fftw_dct3, title = "DCT-III - FFTW's DCT-III", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+diff4_plot = plot(audio_dct4-fftw_dct4, title = "DCT-IV - FFTW's DCT-IV", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
 plot(dct1_plot, dct2_plot, dct3_plot, dct4_plot, dct1_plot2, dct2_plot2, dct3_plot2, dct4_plot2,
-    diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false,
-    layout=(3,4), size = (990, 600), fmt = :png)
+    diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false, titlefont = 10,
+    layout = (3,4), size = (990, 600), fmt = :png)
 ```
 """
 function dct(audio_signal, dct_type)
@@ -709,12 +707,12 @@ function dct(audio_signal, dct_type)
         audio_signal[[1, end]] = audio_signal[[1, end]] * sqrt(2)
 
         # Compute the DCT-I using the FFT
-        audio_dct = [audio_signal; audio_signal[window_length-1:-1:2]]
+        audio_dct = [audio_signal; audio_signal[end-1:-1:2]]
         audio_dct = fft(audio_dct, 1)
         audio_dct = real(audio_dct[1:window_length]) / 2
 
         # Post-process the results to make the DCT-I matrix orthogonal
-        audio_dct[[1, window_length]] = audio_dct[[1, window_length]] / sqrt(2)
+        audio_dct[[1, end]] = audio_dct[[1, end]] / sqrt(2)
         audio_dct = audio_dct * sqrt(2 / (window_length - 1))
 
     elseif dct_type == 2
@@ -725,8 +723,7 @@ function dct(audio_signal, dct_type)
         # Compute the DCT-II using the FFT
         audio_dct = zeros(4 * window_length)
         audio_dct[2:2:2*window_length] = audio_signal
-        audio_dct[2*window_length+2:2:4*window_length] =
-            audio_signal[window_length:-1:1]
+        audio_dct[2*window_length+2:2:4*window_length] = audio_signal[end:-1:1]
         audio_dct = fft(audio_dct, 1)
         audio_dct = real(audio_dct[1:window_length]) / 2
 
@@ -747,12 +744,9 @@ function dct(audio_signal, dct_type)
         # Compute the DCT-III using the FFT
         audio_dct = zeros(4 * window_length)
         audio_dct[1:window_length] = audio_signal
-        audio_dct[window_length+2:2*window_length+1] =
-            -audio_signal[window_length:-1:1]
-        audio_dct[2*window_length+2:3*window_length] =
-            -audio_signal[2:window_length]
-        audio_dct[3*window_length+2:4*window_length] =
-            audio_signal[window_length:-1:2]
+        audio_dct[window_length+2:2*window_length+1] = -audio_signal[end:-1:1]
+        audio_dct[2*window_length+2:3*window_length] = -audio_signal[2:end]
+        audio_dct[3*window_length+2:4*window_length] = audio_signal[end:-1:2]
         audio_dct = fft(audio_dct, 1)
         audio_dct = real(audio_dct[2:2:2*window_length]) / 4
 
@@ -767,11 +761,9 @@ function dct(audio_signal, dct_type)
         # Compute the DCT-IV using the FFT
         audio_dct = zeros(8 * window_length)
         audio_dct[2:2:2*window_length] = audio_signal
-        audio_dct[2*window_length+2:2:4*window_length] =
-            -audio_signal[window_length:-1:1]
+        audio_dct[2*window_length+2:2:4*window_length] = -audio_signal[end:-1:1]
         audio_dct[4*window_length+2:2:6*window_length] = -audio_signal
-        audio_dct[6*window_length+2:2:8*window_length] =
-            audio_signal[window_length:-1:1]
+        audio_dct[6*window_length+2:2:8*window_length] = audio_signal[end:-1:1]
         audio_dct = fft(audio_dct, 1)
         audio_dct = real(audio_dct[2:2:2*window_length]) / 4
 
@@ -783,116 +775,114 @@ function dct(audio_signal, dct_type)
 end
 
 """
-audio_dst = z.dst(audio_signal, dst_type);
+audio_dst = zaf.dst(audio_signal, dst_type);
 
-    Compute the discrete sine transform (DST) using the fast Fourier transform (FFT)
+    Compute the discrete sine transform (DST) using the fast Fourier transform (FFT).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, number_frames]
-- `dst_type::Integer`: the DST type (1, 2, 3, or 4)
-- `audio_dst::Float`: the audio DST [number_frequencies, number_frames]
+- `audio_signal::Float`: the audio signal (window_length,).
+- `dst_type::Integer`: the DST type (1, 2, 3, or 4).
+- `audio_dst::Float`: the audio DST (number_frequencies,)
 
-# Example: Compute the 4 different DSTs and compare them to their respective inverses
+# Example: compute the 4 different DSTs and compare them to their respective inverses
 ```
-# Audio signal averaged over its channels and sample rate in Hz
-Pkg.add("WAV")
+# Load the modules
+include("./zaf.jl")
+using .zaf
 using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
-
-# Audio signal for a given window length, and one frame
-window_length = 1024;
-audio_signal = audio_signal[1:window_length, :];
-
-# DST-I, II, III, and IV
-include("z.jl")
-audio_dst1 = z.dst(audio_signal, 1);
-audio_dst2 = z.dst(audio_signal, 2);
-audio_dst3 = z.dst(audio_signal, 3);
-audio_dst4 = z.dst(audio_signal, 4);
-
-# Respective inverses, i.e., DST-I, II, III, and IV
-audio_idst1 = z.dst(audio_dst1, 1);
-audio_idst2 = z.dst(audio_dst2, 3);
-audio_idst3 = z.dst(audio_dst3, 2);
-audio_idst4 = z.dst(audio_dst4, 4);
-
-# DST-I, II, III, and IV, respective inverses, and errors displayed
-Pkg.add("Plots")
+using Statistics
 using Plots
-plotly()
-dst1_plot = plot(audio_dst1, title="DST-I");
-dst2_plot = plot(audio_dst2, title="DST-II");
-dst3_plot = plot(audio_dst3, title="DST-III");
-dst4_plot = plot(audio_dst4, title="DST-IV");
-idst1_plot = plot(audio_idst1, title="Inverse DST-I = DST-I");
-idst2_plot = plot(audio_idst2, title="Inverse DST-II = DST-III");
-idst3_plot = plot(audio_idst3, title="Inverse DST-III = DST-II");
-idst4_plot = plot(audio_idst4, title="Inverse DST-IV = DST-IV");
-ddst1_plot = plot(audio_signal-audio_idst1, title="Error");
-ddst2_plot = plot(audio_signal-audio_idst2, title="Error");
-ddst3_plot = plot(audio_signal-audio_idst3, title="Error");
-ddst4_plot = plot(audio_signal-audio_idst4, title="Error");
-plot(dst1_plot, idst1_plot, ddst1_plot, dst2_plot, idst2_plot, ddst2_plot,
-dst3_plot, idst3_plot, ddst3_plot, dst4_plot, idst4_plot, ddst4_plot, layout=(4,3), legend=false)
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Get an audio segment for a given window length
+window_length = 1024
+audio_segment = audio_signal[1:window_length]
+
+# Compute the DST-I, II, III, and IV
+audio_dst1 = zaf.dst(audio_segment, 1)
+audio_dst2 = zaf.dst(audio_segment, 2)
+audio_dst3 = zaf.dst(audio_segment, 3)
+audio_dst4 = zaf.dst(audio_segment, 4)
+
+# Compute their respective inverses, i.e., DST-I, II, III, and IV
+audio_idst1 = zaf.dst(audio_dst1, 1)
+audio_idst2 = zaf.dst(audio_dst2, 3)
+audio_idst3 = zaf.dst(audio_dst3, 2)
+audio_idst4 = zaf.dst(audio_dst4, 4)
+
+# Plot the DST-I, II, III, and IV, their respective inverses, and their differences with the original audio segment
+dst1_plot = plot(audio_dst1, title = "DST-I");
+dst2_plot = plot(audio_dst2, title = "DST-II");
+dst3_plot = plot(audio_dst3, title = "DST-III");
+dst4_plot = plot(audio_dst4, title = "DST-IV");
+idst1_plot2 = plot(audio_idst1, title = "Inverse DST-I (DST-I)");
+idst2_plot2 = plot(audio_idst2, title = "Inverse DST-II (DST-III)");
+idst3_plot2 = plot(audio_idst3, title = "Inverse DST-III (DST-II)");
+idst4_plot2 = plot(audio_idst4, title = "Inverse DST-IV (DST-IV)");
+diff1_plot = plot(audio_idst1-audio_segment, title = "Inverse DST-I - audio segment");
+diff2_plot = plot(audio_idst2-audio_segment, title = "Inverse DST-II - audio segment");
+diff3_plot = plot(audio_idst3-audio_segment, title = "Inverse DST-III - audio segment");
+diff4_plot = plot(audio_idst4-audio_segment, title = "Inverse DST-IV - audio segment");
+plot(dst1_plot, dst2_plot, dst3_plot, dst4_plot, idst1_plot2, idst2_plot2, idst3_plot2, idst4_plot2,
+    diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false, titlefont = 10,
+    layout = (3,4), size = (990, 600), fmt = :png)
 ```
 """
 function dst(audio_signal, dst_type)
 
+    # Check if the DST type is I, II, III, or IV
     if dst_type == 1
 
-        # Number of samples per frame
-        window_length, number_frames = size(audio_signal)
+        # Get the number of samples
+        window_length = length(audio_signal)
 
         # Compute the DST-I using the FFT
-        audio_dst = [
-            zeros(1, number_frames)
-            audio_signal
-            zeros(1, number_frames)
-            -audio_signal[window_length:-1:1, :]
-        ]
+        audio_dst = zeros(2 * window_length + 2)
+        audio_dst[2:window_length+1] = audio_signal
+        audio_dst[window_length+3:end] = -audio_signal[end:-1:1]
         audio_dst = fft(audio_dst, 1)
-        audio_dst = -imag(audio_dst[2:window_length+1, :]) / 2
+        audio_dst = -imag(audio_dst[2:window_length+1]) / 2
 
-        # Post-processing to make the DST-I matrix orthogonal
+        # Post-process the results to make the DST-I matrix orthogonal
         audio_dst = audio_dst * sqrt(2 / (window_length + 1))
 
     elseif dst_type == 2
 
-        # Number of samples per frame
-        window_length, number_frames = size(audio_signal)
+        # Get the number of samples
+        window_length = length(audio_signal)
 
         # Compute the DST-II using the FFT
-        audio_dst = zeros(4 * window_length, number_frames)
-        audio_dst[2:2:2*window_length, :] = audio_signal
-        audio_dst[2*window_length+2:2:4*window_length, :] =
-            -audio_signal[window_length:-1:1, :]
+        audio_dst = zeros(4 * window_length)
+        audio_dst[2:2:2*window_length] = audio_signal
+        audio_dst[2*window_length+2:2:4*window_length] = -audio_signal[end:-1:1]
         audio_dst = fft(audio_dst, 1)
-        audio_dst = -imag(audio_dst[2:window_length+1, :]) / 2
+        audio_dst = -imag(audio_dst[2:window_length+1]) / 2
 
-        # Post-processing to make the DST-II matrix orthogonal
-        audio_dst[window_length, :] = audio_dst[window_length, :] / sqrt(2)
+        # Post-process the results to make the DST-II matrix orthogonal
+        audio_dst[end] = audio_dst[end] / sqrt(2)
         audio_dst = audio_dst * sqrt(2 / window_length)
 
     elseif dst_type == 3
 
-        # Number of samples per frame
-        window_length, number_frames = size(audio_signal)
+        # Get the number of samples
+        window_length = length(audio_signal)
 
-        # Pre-processing to make the DST-III matrix orthogonal (concatenate to avoid the input to change!)
-        audio_signal = [
-            audio_signal[1:window_length-1, :]
-            audio_signal[window_length:window_length, :] * sqrt(2)
-        ]
+        # Pre-process the signal to make the DST-III matrix orthogonal
+        # (copy the signal to avoid modifying it outside of the function)
+        audio_signal = copy(audio_signal)
+        audio_signal = [audio_signal[1:end-1]; audio_signal[end] * sqrt(2)]
 
         # Compute the DST-III using the FFT
-        audio_dst = zeros(4 * window_length, number_frames)
+        audio_dst = zeros(4 * window_length)
         audio_dst[2:window_length+1, :] = audio_signal
         audio_dst[window_length+2:2*window_length, :] =
-            audio_signal[window_length-1:-1:1, :]
+            audio_signal[end-1:-1:1, :]
         audio_dst[2*window_length+2:3*window_length+1, :] = -audio_signal
         audio_dst[3*window_length+2:4*window_length, :] =
-            -audio_signal[window_length-1:-1:1, :]
+            -audio_signal[end-1:-1:1, :]
         audio_dst = fft(audio_dst, 1)
         audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
 
@@ -901,21 +891,21 @@ function dst(audio_signal, dst_type)
 
     elseif dst_type == 4
 
-        # Number of samples per frame
-        window_length, number_frames = size(audio_signal)
+        # Get the number of samples
+        window_length = length(audio_signal)
 
         # Compute the DST-IV using the FFT
-        audio_dst = zeros(8 * window_length, number_frames)
+        audio_dst = zeros(8 * window_length)
         audio_dst[2:2:2*window_length, :] = audio_signal
         audio_dst[2*window_length+2:2:4*window_length, :] =
-            audio_signal[window_length:-1:1, :]
+            audio_signal[end:-1:1, :]
         audio_dst[4*window_length+2:2:6*window_length, :] = -audio_signal
         audio_dst[6*window_length+2:2:8*window_length, :] =
-            -audio_signal[window_length:-1:1, :]
+            -audio_signal[end:-1:1, :]
         audio_dst = fft(audio_dst, 1)
         audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
 
-        # Post-processing to make the DST-IV matrix orthogonal
+        # Post-process the results to make the DST-III matrix orthogonal
         audio_dst = audio_dst * sqrt(2 / window_length)
 
     end
