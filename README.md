@@ -368,6 +368,83 @@ Output:
 #### Example: compute the 4 different DCTs and compare them to FFTW's DCTs
 
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using FFTW
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav");
+audio_signal = mean(audio_signal, dims=2);
+
+# Get an audio segment for a given window length
+window_length = 1024;
+audio_segment = audio_signal[1:window_length];
+
+# Compute the DCT-I, II, III, and IV
+audio_dct1 = zaf.dct(audio_segment, 1);
+audio_dct2 = zaf.dct(audio_segment, 2);
+audio_dct3 = zaf.dct(audio_segment, 3);
+audio_dct4 = zaf.dct(audio_segment, 4);
+
+# Compute FFTW's DCT-I, II, III, and IV (orthogonalized)
+audio_segment2 = copy(audio_segment)
+audio_segment2[[1, end]] = audio_segment2[[1, end]]*sqrt(2)
+fftw_dct1 = FFTW.r2r(audio_segment2, FFTW.REDFT00)
+fftw_dct1[[1, window_length]] = fftw_dct1[[1, window_length]]/sqrt(2)
+fftw_dct1 = fftw_dct1/2 * sqrt(2/(window_length - 1))
+
+fftw_dct2 = FFTW.r2r(audio_segment, FFTW.REDFT10)
+fftw_dct2[1] = fftw_dct2[1]/sqrt(2)
+fftw_dct2 = fftw_dct2/2 * sqrt(2/window_length)
+
+audio_segment2 = copy(audio_segment)
+audio_segment2[1] = audio_segment2[1]*sqrt(2)
+fftw_dct3 = FFTW.r2r(audio_segment2, FFTW.REDFT01)
+fftw_dct3 = fftw_dct3/2 * sqrt(2/window_length)
+
+fftw_dct4 = FFTW.r2r(audio_segment, FFTW.REDFT11)
+fftw_dct4 = fftw_dct4/2 * sqrt(2/window_length)
+
+# Plot the DCT-I, II, III, and IV, FFTW's versions, and their differences (using yformatter because of precision issue in ticks)
+dct1_plot = plot(audio_dct1, title="DCT-I");
+dct2_plot = plot(audio_dct2, title="DCT-II");
+dct3_plot = plot(audio_dct3, title="DCT-III");
+dct4_plot = plot(audio_dct4, title="DCT-IV");
+dct1_plot2 = plot(audio_dct1, title="FFTW's DCT-I");
+dct2_plot2 = plot(audio_dct2, title="FFTW's DCT-II");
+dct3_plot2 = plot(audio_dct3, title="FFTW's DCT-III");
+dct4_plot2 = plot(audio_dct4, title="FFTW's DCT-IV");
+diff1_plot = plot(audio_dct1-fftw_dct1, title="DCT-I - FFTW's DCT-I");
+diff2_plot = plot(audio_dct2-fftw_dct2, title="DCT-II - FFTW's DCT-II", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+diff3_plot = plot(audio_dct3-fftw_dct3, title="DCT-III - FFTW's DCT-III", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+diff4_plot = plot(audio_dct4-fftw_dct4, title="DCT-IV - FFTW's DCT-IV", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+plot(dct1_plot, dct2_plot, dct3_plot, dct4_plot, dct1_plot2, dct2_plot2, dct3_plot2, dct4_plot2, 
+    diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false, 
+    layout=(3,4), size = (990, 600), fmt = :png)
+```
+
+<img src="images/dct.png" width="1000">
+
+
+### Discrete sine transform (DST) using the fast Fourier transform (FFT)
+
+```
+audio_dst = zaf.dst(audio_signal, dst_type)
+
+Inputs:
+    audio_signal: audio signal (window_length,)
+    dst_type: DST type (1, 2, 3, or 4)
+Output:
+    audio_dst: audio DST (number_frequencies,)
+```
+
+#### Example: compute the 4 different DSTs and compare their respective inverses with the original audio
+
+```
 here
 ```
 
