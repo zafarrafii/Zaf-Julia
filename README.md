@@ -144,7 +144,7 @@ center_signal1 = zaf.istft(center_stft1, window_function, step_length);
 center_signal2 = zaf.istft(center_stft2, window_function, step_length);
 
 # Derive the final stereo center and sides signals
-center_signal = hcat(center_signal1, center_signal2);
+center_signal = [center_signal1 center_signal2];
 center_signal = center_signal[1:size(audio_signal, 1), :];
 sides_signal = audio_signal-center_signal;
 
