@@ -27,7 +27,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/20/20
+    11/25/20
 """
 module zaf
 
@@ -37,7 +37,7 @@ export stft,
     istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst, mdct, imdct
 
 """
-    audio_stft = zaf.stft(audio_signal, window_function, step_length)
+    audio_stft = stft(audio_signal, window_function, step_length)
 
 Compute the short-time Fourier transform (STFT).
 
@@ -136,7 +136,7 @@ function stft(audio_signal, window_function, step_length)
 end
 
 """
-    audio_istft = zaf.istft(audio_signal, window_function, step_length)
+    audio_istft = istft(audio_signal, window_function, step_length)
 
 Compute the inverse short-time Fourier transform (STFT).
 
@@ -238,7 +238,7 @@ function istft(audio_stft, window_function, step_length)
 end
 
 """
-    cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+    cqt_kernel = cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
 
 Compute the constant-Q transform (CQT) kernel.
 
@@ -347,7 +347,7 @@ function cqtkernel(
 end
 
 """
-    audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
+    audio_spectrogram = cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
@@ -431,7 +431,7 @@ function cqtspectrogram(
 end
 
 """
-    audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
+    audio_chromagram = cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
 
 Compute the constant-Q transform (CQT) chromagram using a kernel
 
@@ -514,7 +514,7 @@ function cqtchromagram(
 end
 
 """
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
+audio_mfcc = mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
 
     Compute the mel frequency cepstrum coefficients (MFFCs).
 
@@ -623,7 +623,7 @@ function mfcc(
 end
 
 """
-audio_dct = zaf.dct(audio_signal, dct_type);
+audio_dct = dct(audio_signal, dct_type);
 
     Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
 
@@ -775,7 +775,7 @@ function dct(audio_signal, dct_type)
 end
 
 """
-audio_dst = zaf.dst(audio_signal, dst_type);
+audio_dst = dst(audio_signal, dst_type);
 
     Compute the discrete sine transform (DST) using the fast Fourier transform (FFT).
 
@@ -913,69 +913,44 @@ function dst(audio_signal, dst_type)
 end
 
 """
-audio_mdct = z.mdct(audio_signal,window_function);
+audio_mdct = mdct(audio_signal, window_function)
 
-    Compute the modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT)
+    Compute the modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT).
 
 # Arguments:
-- `audio_signal::Float`: the audio signal [number_samples, 1]
-- `window_function::Float`: the window function [window_length, 1]
-- `audio_mdct::Float`: the audio MDCT [number_frequencies, number_times]
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `window_function::Float`: the window function (window_length,).
+- `audio_mdct::Float`: the audio MDCT (number_frequencies, number_times).
 
-# Example: Compute and display the MDCT as used in the AC-3 audio coding format
+# Example: compute and display the MDCT as used in the AC-3 audio coding format
 ```
-# Audio signal averaged over its channels and sample rate in Hz
-Pkg.add("WAV")
-using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
-
-# Kaiser-Bessel-derived (KBD) window as used in the AC-3 audio coding format
-window_length = 512;
-alpha_value = 5;
-include("z.jl")
-window_function = z.kaiser(convert(Int64, window_length/2)+1, alpha_value*pi);
-window_function2 = cumsum(window_function[1:convert(Int64, window_length/2)]);
-window_function = sqrt.([window_function2; window_function2[convert(Int64, window_length/2):-1:1]]./sum(window_function));
-
-# MDCT
-audio_mdct = z.mdct(audio_signal, window_function);
-
-# MDCT displayed in dB, s, and kHz
-Pkg.add("Plots")
-using Plots
-plotly()
-x_labels = [string(round(i*convert(Int64, window_length/2)/sample_rate, 2)) for i = 1:size(audio_mdct, 2)];
-y_labels = [string(round(i*sample_rate/window_length/1000, 2)) for i = 1:size(audio_mdct, 1)];
-heatmap(x_labels, y_labels, 20*log10.(abs.(audio_mdct)))
+Here
 ```
 """
 function mdct(audio_signal, window_function)
 
-    # Number of samples and window length
+    # Get the number of samples and the window length in samples
     number_samples = length(audio_signal)
     window_length = length(window_function)
 
-    # Number of time frames
-    number_times = ceil(Int64, 2 * number_samples / window_length) + 1
+    # Derive the step length and the number of frequencies (for clarity)
+    step_length = convert(Int, window_length / 2)
+    number_frequencies = convert(Int, window_length / 2)
 
-    # Pre and post zero-padding of the signal
+    # Derive the number of time frames
+    number_times = ceil(Int, number_samples / step_length) + 1
+
+    # Zero-pad the start and the end of the signal to center the windows
     audio_signal = [
-        zeros(convert(Int64, window_length / 2), 1)
+        zeros(step_length)
         audio_signal
-        zeros(
-            convert(
-                Int64,
-                (number_times + 1) * window_length / 2 - number_samples,
-            ),
-            1,
-        )
+        zeros((number_times + 1) * step_length - number_samples)
     ]
 
     # Initialize the MDCT
-    audio_mdct = zeros(convert(Int64, window_length / 2), number_times)
+    audio_mdct = zeros(number_frequencies, number_times)
 
-    # Pre and post-processing arrays
+    # Prepare the pre-processing and post-processing arrays
     preprocessing_array = exp.(-im * pi / window_length * (0:window_length-1))
     postprocessing_array =
         exp.(
@@ -985,38 +960,36 @@ function mdct(audio_signal, window_function)
         )
 
     # Loop over the time frames
-    for time_index = 1:number_times
+    # (Do the pre and post-processing, and take the FFT in the loop to avoid storing twice longer frames)
+    i = 0
+    for j = 1:number_times
 
         # Window the signal
-        sample_index = convert(Int64, window_length / 2) * (time_index - 1)
-        audio_segment =
-            audio_signal[1+sample_index:window_length+sample_index] .*
-            window_function
+        audio_segment = audio_signal[i+1:i+window_length] .*window_function
+        i = i + step_length
 
-        # FFT of the audio segment after pre-processing
-        audio_segment = fft(audio_segment .* preprocessing_array, 1)
+        # Compute the Fourier transform of the windowed segment using the FFT after pre-processing
+        audio_segment = fft(audio_segment .* preprocessing_array)
 
-        # Truncate to the first half before post-processing
-        audio_mdct[:, time_index] = real(
-            audio_segment[1:convert(Int64, window_length / 2)] .*
-            postprocessing_array,
-        )
+        # Truncate to the first half before post-processing (and take the real to ensure real values)
+        audio_mdct[:, j] = real(audio_segment[1:number_frequencies] .*postprocessing_array)
 
     end
 
+    # Return the output explicitly as it is not clear here what the last value is
     return audio_mdct
 
 end
 
 """
-audio_signal = z.imdct(audio_mdct, window_function);
+audio_signal = imdct(audio_mdct, window_function)
 
-    Compute the inverse modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT)
+    Compute the inverse modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT).
 
 # Arguments:
-- `audio_mdct::Float`: the audio MDCT [number_frequencies, number_times]
-- `window_function::Float`: the window function [window_length, 1]
-- `audio_signal::Float`: the audio signal [number_samples, 1]
+- `audio_mdct::Float`: the audio MDCT (number_frequencies, number_times).
+- `window_function::Float`: the window function (window_length,).
+- `audio_signal::Float`: the audio signal (number_samples,).
 
 # Example: Verify that the MDCT is perfectly invertible
 ```
