@@ -13,6 +13,7 @@ Simply copy the file `zaf.jl` in your working directory and you are good to go. 
 - [WAV](https://juliapackages.com/p/wav): Julia package to read and write the WAV audio file format.
 - [FFTW](https://juliapackages.com/p/fftw): Julia bindings to the [FFTW](http://www.fftw.org/) library for fast Fourier transforms (FFTs), as well as functionality useful for signal processing.
 - [Plots](https://docs.juliaplots.org/latest/): powerful convenience for visualization in Julia.
+- [DSP](https://docs.juliadsp.org/stable/contents/): provides a number of common digital signal processing routines in Julia (not used in the functions but for the examples).
 
 Functions:
 - [`stft`](#short-time-fourier-transform-stft) - Compute the short-time Fourier transform (STFT).
