@@ -15,7 +15,6 @@ This Julia module implements a number of functions for audio signal analysis.
 
 # Other:
     hamming - Compute the Hamming window.
-    kaiser - Compute the Kaiser window.
     sigplot - Plot a signal in seconds.
     specshow - Display an spectrogram in dB, seconds, and Hz.
     cqtspecshow - Display a CQT spectrogram in dB, seconds, and Hz.
@@ -27,7 +26,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/25/20
+    11/29/20
 """
 module zaf
 
@@ -924,7 +923,47 @@ audio_mdct = mdct(audio_signal, window_function)
 
 # Example: compute and display the MDCT as used in the AC-3 audio coding format
 ```
-Here
+# Compute the Kaiser window using the modified Bessel function of the first kind
+Pkg.add("SpecialFunctions")
+using SpecialFunctions
+
+function kaiser(window_length, alpha_value)
+
+    window_function = zeros(window_length)
+    for window_index = 1:window_length
+        window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1) .^ 2))
+    end
+    window_function = window_function / besseli(0, alpha_value)
+
+end
+
+
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Compute the Kaiser-Bessel-derived (KBD) window as used in the AC-3 audio coding format
+window_length = 512
+alpha_value = 5
+window_function = kaiser(convert(Int, window_length/2)+1, alpha_value*pi);
+window_function2 = cumsum(window_function[1:convert(Int, window_length/2)]);
+window_function = sqrt.([window_function2; window_function2[convert(Int, window_length/2):-1:1]]./sum(window_function));
+
+# Compute the MDCT
+audio_mdct = zaf.mdct(audio_signal, window_function)
+
+# Display the MDCT in dB, seconds, and Hz
+xtick_step = 1
+ytick_step = 1000
+plot_object = zaf.specshow(abs.(audio_mdct), length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+heatmap!(title = "MDCT (dB)", size = (990, 600))
 ```
 """
 function mdct(audio_signal, window_function)
@@ -965,14 +1004,15 @@ function mdct(audio_signal, window_function)
     for j = 1:number_times
 
         # Window the signal
-        audio_segment = audio_signal[i+1:i+window_length] .*window_function
+        audio_segment = audio_signal[i+1:i+window_length] .* window_function
         i = i + step_length
 
         # Compute the Fourier transform of the windowed segment using the FFT after pre-processing
         audio_segment = fft(audio_segment .* preprocessing_array)
 
         # Truncate to the first half before post-processing (and take the real to ensure real values)
-        audio_mdct[:, j] = real(audio_segment[1:number_frequencies] .*postprocessing_array)
+        audio_mdct[:, j] =
+            real(audio_segment[1:number_frequencies] .* postprocessing_array)
 
     end
 
@@ -1098,32 +1138,6 @@ function hamming(window_length, window_sampling = "symmetric")
         window_function =
             0.54 .- 0.46 * cos.(2 * pi * (0:window_length-1) / window_length)
     end
-
-end
-
-"""
-    window_function = kaiser(window_length, alpha_value)
-
-Compute the Kaiser window.
-
-# Arguments:
-- `window_length::Integer`: the window length in samples.
-- `alpha_value::Float`: the alpha value that determines the shape of the window.
-- `window_function::Float`: the window function (window_length,).
-"""
-function kaiser(window_length, alpha_value)
-
-    # Compute the Kaiser window using the modified Bessel function of the first kind
-    window_function = zeros(window_length)
-    for window_index = 1:window_length
-        window_function[window_index] = besseli(
-            0,
-            alpha_value * sqrt(
-                1 - (2 * (window_index - 1) / (window_length - 1) - 1) .^ 2,
-            ),
-        )
-    end
-    window_function = window_function / besseli(0, alpha_value)
 
 end
 
@@ -1319,6 +1333,5 @@ function cqtchromshow(audio_chromagram, time_resolution, xtick_step = 1)
     )
 
 end
-
 
 end
