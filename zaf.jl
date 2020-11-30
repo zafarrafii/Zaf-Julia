@@ -26,7 +26,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/29/20
+    11/30/20
 """
 module zaf
 
@@ -923,27 +923,16 @@ audio_mdct = mdct(audio_signal, window_function)
 
 # Example: compute and display the MDCT as used in the AC-3 audio coding format
 ```
-# Compute the Kaiser window using the modified Bessel function of the first kind
-Pkg.add("SpecialFunctions")
-using SpecialFunctions
-
-function kaiser(window_length, alpha_value)
-
-    window_function = zeros(window_length)
-    for window_index = 1:window_length
-        window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1) .^ 2))
-    end
-    window_function = window_function / besseli(0, alpha_value)
-
-end
-
-
 # Load the modules
 include("./zaf.jl")
 using .zaf
 using WAV
 using Statistics
 using Plots
+
+# Add and use the DSP package to get the kaiser window function
+Pkg.add("DSP")
+using DSP
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
 audio_signal, sampling_frequency = wavread("audio_file.wav")
