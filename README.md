@@ -600,6 +600,8 @@ plot!(ylims = (-y_max, y_max), title = "Original - resyntesized signal")
 plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 
+<img src="images/imdct.png" width="1000">
+
 
 ## examples.ipynb
 
