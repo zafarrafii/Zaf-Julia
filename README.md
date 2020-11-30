@@ -505,8 +505,69 @@ Output:
 #### Example: compute and display the MDCT as used in the AC-3 audio coding format
 
 ```
-here!
+# Compute the Kaiser window using the modified Bessel function of the first kind
+Pkg.add("SpecialFunctions")
+using SpecialFunctions
+
+function kaiser(window_length, alpha_value)
+
+    window_function = zeros(window_length)
+    for window_index = 1:window_length
+        window_function[window_index] = besseli(0, alpha_value*sqrt(1-(2*(window_index-1)/(window_length-1)-1) .^ 2))
+    end
+    window_function = window_function / besseli(0, alpha_value)
+
+end
+
+
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Compute the Kaiser-Bessel-derived (KBD) window as used in the AC-3 audio coding format
+window_length = 512
+alpha_value = 5
+window_function = kaiser(convert(Int, window_length/2)+1, alpha_value*pi);
+window_function2 = cumsum(window_function[1:convert(Int, window_length/2)]);
+window_function = sqrt.([window_function2; window_function2[convert(Int, window_length/2):-1:1]]./sum(window_function));
+
+# Compute the MDCT
+audio_mdct = zaf.mdct(audio_signal, window_function)
+
+# Display the MDCT in dB, seconds, and Hz
+xtick_step = 1
+ytick_step = 1000
+plot_object = zaf.specshow(abs.(audio_mdct), length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+heatmap!(title = "MDCT (dB)", size = (990, 600))
 ```
+
+<img src="images/mdct.png" width="1000">
+
+
+### Inverse modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT)
+
+```
+audio_signal = zaf.imdct(audio_mdct, window_function)
+
+Inputs:
+    audio_mdct: audio MDCT (number_frequencies, number_times)
+    window_function: window function (window_length,)
+Output:
+    audio_signal: audio signal (number_samples,)
+```
+
+#### Example: verify that the MDCT is perfectly invertible
+```
+here
+```
+
 
 ## examples.ipynb
 
