@@ -509,16 +509,16 @@ Output:
 #### Example: compute and display the MDCT as used in the AC-3 audio coding format
 
 ```
-# Add and use the DSP package to get the kaiser window function
-Pkg.add("DSP")
-using DSP
-
 # Load the modules
 include("./zaf.jl")
 using .zaf
 using WAV
 using Statistics
 using Plots
+
+# Add and use the DSP package to get the kaiser window function
+Pkg.add("DSP")
+using DSP
 
 # Read the audio signal with its sampling frequency in Hz, and average it over its channels
 audio_signal, sampling_frequency = wavread("audio_file.wav")
