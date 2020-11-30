@@ -13,7 +13,7 @@ See also:
 
 This Julia module implements a number of functions for audio signal analysis.
 
-Simply copy the file `zaf.jl` in your working directory and you are good to go. Make sure to have the following packages installed (`Pkg.add("name_of_the_package")`):
+Simply copy the file `zaf.jl` in your working directory, run `include("./zaf.jl"); using .zaf`, and you are good to go. Make sure to have the following packages installed (`Pkg.add("name_of_the_package")`):
 - [WAV](https://juliapackages.com/p/wav): Julia package to read and write the WAV audio file format.
 - [FFTW](https://juliapackages.com/p/fftw): Julia bindings to the [FFTW](http://www.fftw.org/) library for fast Fourier transforms (FFTs), as well as functionality useful for signal processing.
 - [Plots](https://docs.juliaplots.org/latest/): powerful convenience for visualization in Julia.
