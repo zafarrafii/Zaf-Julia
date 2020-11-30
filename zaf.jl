@@ -1031,48 +1031,59 @@ audio_signal = imdct(audio_mdct, window_function)
 - `window_function::Float`: the window function (window_length,).
 - `audio_signal::Float`: the audio signal (number_samples,).
 
-# Example: Verify that the MDCT is perfectly invertible
+# Example: verify that the MDCT is perfectly invertible
 ```
-# Import modules
-Pkg.add("WAV")
+# Load the modules
+include("./zaf.jl")
+using .zaf
 using WAV
-audio_signal, sample_rate = wavread("audio_file.wav");
-audio_signal = mean(audio_signal, 2);
-
-# MDCT with a slope function as used in the Vorbis audio coding format
-window_length = 2048;
-window_function = sin.(pi/2*(sin.(pi/window_length*(0.5:window_length-0.5)).^2));
-include("z.jl")
-audio_mdct = z.mdct(audio_signal, window_function);
-
-# Inverse MDCT and error signal
-audio_signal2 = z.imdct(audio_mdct, window_function);
-audio_signal2 = audio_signal2[1:length(audio_signal)];
-error_signal = audio_signal-audio_signal2;
-
-# Original, resynthesized, and error signals displayed in s
-Pkg.add("Plots")
+using Statistics
 using Plots
-plotly()
-time_signal = (1:size(audio_signal, 1))/sample_rate;
-audio_plot = plot(time_signal, audio_signal, xlabel="Time (s)", title="Original Signal");
-audio2_plot = plot(time_signal, audio_signal2, xlabel="Time (s)", title="Resynthesized Signal");
-error_plot = plot(time_signal, error_signal, xlabel="Time (s)", title="Error Signal");
-plot(audio_plot, audio2_plot, error_plot, layout=(3,1), legend=false)
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Compute the MDCT with a slope function as used in the Vorbis audio coding format
+window_length = 2048
+window_function = sin.(pi/2*(sin.(pi/window_length*(0.5:window_length-0.5)).^2))
+audio_mdct = zaf.mdct(audio_signal, window_function)
+
+# Compute the inverse MDCT
+audio_signal2 = zaf.imdct(audio_mdct, window_function)
+audio_signal2 = audio_signal2[1:length(audio_signal)]
+
+# Compute the differences between the original signal and the resynthesized one
+audio_differences = audio_signal-audio_signal2
+y_max = maximum(abs.(audio_differences))
+
+# Display the original and resynthesized signals, and their differences in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step)
+plot!(ylims = (-1, 1), title = "Original signal")
+plot_object2 = zaf.sigplot(audio_signal2, sampling_frequency, xtick_step)
+plot!(ylims = (-1, 1), title = "Resyntesized signal")
+plot_object3 = zaf.sigplot(audio_differences, sampling_frequency, xtick_step)
+plot!(ylims = (-y_max, y_max), title = "Original - resyntesized signal")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 """
 function imdct(audio_mdct, window_function)
 
-    # Number of frequency channels and time frames
+    # Get the number of frequency channels and time frames
     number_frequencies, number_times = size(audio_mdct)
 
-    # Number of samples for the signal
-    number_samples = number_frequencies * (number_times + 1)
+    # Derive the window length and the step length in samples (for clarity)
+    window_length = 2 * number_frequencies
+    step_length = number_frequencies
+
+    # Derive the number of samples for the signal
+    number_samples = step_length * (number_times + 1)
 
     # Initialize the audio signal
-    audio_signal = zeros(number_samples, 1)
+    audio_signal = zeros(number_samples)
 
-    # Pre and post-processing arrays
+    # Prepare the pre-processing and post-processing arrays
     preprocessing_array =
         exp.(
             -im * pi / (2 * number_frequencies) *
@@ -1086,8 +1097,7 @@ function imdct(audio_mdct, window_function)
             ),
         ) / number_frequencies
 
-    # FFT of the frames after pre-processing
-
+    # Compute the Fourier transform of the frames using the FFT after pre-processing (zero-pad to get twice the length)
     audio_mdct = fft(
         [
             audio_mdct .* preprocessing_array
@@ -1096,24 +1106,21 @@ function imdct(audio_mdct, window_function)
         1,
     )
 
-    # Apply the window to the frames after post-processing
+    # Apply the window function to the frames after post-processing (take the real to ensure real values)
     audio_mdct = 2 * real(audio_mdct .* postprocessing_array) .* window_function
 
     # Loop over the time frames
-    for time_index = 1:number_times
+    i = 0
+    for j = 1:number_times
 
-        # Recover the signal thanks to the time-domain aliasing cancellation (TDAC) principle
-        sample_index = (time_index - 1) * number_frequencies + 1
-        audio_signal[sample_index:sample_index+2*number_frequencies-1] =
-            audio_signal[sample_index:sample_index+2*number_frequencies-1] +
-            audio_mdct[:, time_index]
+        # Recover the signal with the time-domain aliasing cancellation (TDAC) principle
+        audio_signal[i+1:i+window_length] = audio_signal[i+1:i+window_length] + audio_mdct[:, j]
+        i = i + step_length
 
     end
 
-    # Remove the pre and post zero-padding
-    audio_signal = audio_signal[number_frequencies+1:end-number_frequencies]
-
-    return audio_signal
+    # Remove the zero-padding at the start and at the end of the signal
+    audio_signal = audio_signal[step_length+1:end-step_length]
 
 end
 
