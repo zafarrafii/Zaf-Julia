@@ -565,7 +565,39 @@ Output:
 
 #### Example: verify that the MDCT is perfectly invertible
 ```
-here
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Compute the MDCT with a slope function as used in the Vorbis audio coding format
+window_length = 2048
+window_function = sin.(pi/2*(sin.(pi/window_length*(0.5:window_length-0.5)).^2))
+audio_mdct = zaf.mdct(audio_signal, window_function)
+
+# Compute the inverse MDCT
+audio_signal2 = zaf.imdct(audio_mdct, window_function)
+audio_signal2 = audio_signal2[1:length(audio_signal)]
+
+# Compute the differences between the original signal and the resynthesized one
+audio_differences = audio_signal-audio_signal2
+y_max = maximum(abs.(audio_differences))
+
+# Display the original and resynthesized signals, and their differences in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(audio_signal, sampling_frequency, xtick_step)
+plot!(ylims = (-1, 1), title = "Original signal")
+plot_object2 = zaf.sigplot(audio_signal2, sampling_frequency, xtick_step)
+plot!(ylims = (-1, 1), title = "Resyntesized signal")
+plot_object3 = zaf.sigplot(audio_differences, sampling_frequency, xtick_step)
+plot!(ylims = (-y_max, y_max), title = "Original - resyntesized signal")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 
 
