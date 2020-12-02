@@ -19,16 +19,16 @@ Simply copy the file `zaf.jl` in your working directory, run `include("./zaf.jl"
 - [Plots](https://docs.juliaplots.org/latest/): powerful convenience for visualization in Julia.
 
 Functions:
-- [`stft`](#short-time-fourier-transform-stft) - Compute the short-time Fourier transform (STFT).
-- [`istft`](#inverse-short-time-fourier-transform-stft) - Compute the inverse STFT.
-- [`cqtkernel`](#constant-q-transform-cqt-kernel) - Compute the constant-Q transform (CQT) kernel.
-- [`cqtspectrogram`](#constant-q-transform-cqt-spectrogram-using-a-cqt-kernel) - Compute the CQT spectrogram using a CQT kernel.
-- [`cqtchromagram`](#constant-q-transform-cqt-chromagram-using-a-cqt-kernel) - Compute the CQT chromagram using a CQT kernel.
-- [`mfcc`](#mel-frequency-cepstrum-coefficients-mfccs) - Compute the mel frequency cepstrum coefficients (MFCCs).
-- [`dct`](#discrete-cosine-transform-dct-using-the-fast-fourier-transform-fft) - Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
-- [`dst`](#discrete-sine-transform-dst-using-the-fast-fourier-transform-fft) - Compute the discrete sine transform (DST) using the FFT.
-- [`mdct`](#modified-discrete-cosine-transform-mdct-using-the-fast-fourier-transform-fft) - Compute the modified discrete cosine transform (MDCT) using the FFT.
-- [`imdct`](#inverse-modified-discrete-cosine-transform-mdct-using-the-fast-fourier-transform-fft) - Compute the inverse MDCT using the FFT.
+- [`stft`](#stft) - Compute the short-time Fourier transform (STFT).
+- [`istft`](#istft) - Compute the inverse STFT.
+- [`cqtkernel`](#cqtkernel) - Compute the constant-Q transform (CQT) kernel.
+- [`cqtspectrogram`](#cqtspectrogram) - Compute the CQT spectrogram using a CQT kernel.
+- [`cqtchromagram`](#cqtchromagram) - Compute the CQT chromagram using a CQT kernel.
+- [`mfcc`](#mfcc) - Compute the mel frequency cepstrum coefficients (MFCCs).
+- [`dct`](#dct) - Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
+- [`dst`](#dst) - Compute the discrete sine transform (DST) using the FFT.
+- [`mdct`](#mdct) - Compute the modified discrete cosine transform (MDCT) using the FFT.
+- [`imdct`](#imdct) - Compute the inverse MDCT using the FFT.
 
 Other:
 - `hamming` - Compute the Hamming window.
@@ -38,7 +38,9 @@ Other:
 - `cqtchromshow` - Display a CQT chromagram in seconds.
 
 
-### Short-time Fourier transform (STFT)
+### stft
+
+Compute the short-time Fourier transform (STFT).
 
 ```
 audio_stft = zaf.stft(audio_signal, window_function, step_length)
@@ -51,7 +53,7 @@ Output:
     audio_stft: audio STFT (window_length, number_frames)
 ```
 
-#### Example: compute and display the spectrogram from an audio file
+Example: Compute and display the spectrogram from an audio file.
 
 ```
 # Load the modules
@@ -96,7 +98,9 @@ heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 <img src="images/stft.png" width="1000">
 
 
-### Inverse short-time Fourier transform (STFT)
+### istft
+
+Compute the inverse short-time Fourier transform (STFT).
 
 ```
 audio_signal = zaf.istft(audio_stft, window_function, step_length)
@@ -109,7 +113,7 @@ Output:
     audio_signal: audio signal (number_samples,)
 ```
 
-#### Example: estimate the center and the sides from a stereo audio file
+Example: Estimate the center and the sides from a stereo audio file.
 
 ```
 # Load the modules
@@ -168,7 +172,10 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 
 <img src="images/istft.png" width="1000">
 
-### Constant-Q transform (CQT) kernel
+
+### cqtkernel
+
+Compute the constant-Q transform (CQT) kernel.
 
 ```
 cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
@@ -182,7 +189,7 @@ Output:
     cqt_kernel: CQT kernel (number_frequencies, fft_length)
 ```
 
-#### Example: compute and display the CQT kernel
+Example: Compute and display the CQT kernel.
 
 ```
 # Load the modules
@@ -207,7 +214,9 @@ heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, s
 <img src="images/cqtkernel.png" width="1000">
 
 
-### Constant-Q transform (CQT) spectrogram using a CQT kernel
+### cqtspectrogram
+
+Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
 ```
 audio_spectrogram = zaf.cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel)
@@ -221,7 +230,7 @@ Output:
     audio_spectrogram: audio spectrogram in magnitude (number_frequencies, number_times)
 ```
 
-#### Example: compute and display the CQT spectrogram
+Example: Compute and display the CQT spectrogram.
 
 ```
 # Load the modules
@@ -255,7 +264,9 @@ heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 <img src="images/cqtspectrogram.png" width="1000">
 
 
-### Constant-Q transform (CQT) chromagram using a CQT kernel
+### cqtchromagram
+
+Compute the constant-Q transform (CQT) chromagram using a kernel.
 
 ```
 audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
@@ -270,7 +281,7 @@ Output:
     audio_chromagram: audio chromagram (number_chromas, number_times)
 ```
 
-#### Example: compute and display the CQT chromagram
+Example: Compute and display the CQT chromagram.
 
 ```
 # Load the modules
@@ -303,7 +314,9 @@ heatmap!(title = "CQT chromagram", size = (990, 300))
 <img src="images/cqtchromagram.png" width="1000">
 
 
-### Mel frequency cepstrum coefficients (MFCCs)
+### mfcc
+
+Compute the mel frequency cepstrum coefficients (MFFCs).
 
 ```
 audio_mfcc = zaf.mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
@@ -317,7 +330,7 @@ Output:
     audio_mfcc: audio MFCCs (number_times, number_coefficients)
 ```
 
-#### Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
+Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 
 ```
 # Load the modules
@@ -354,7 +367,9 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 <img src="images/mfcc.png" width="1000">
 
 
-### Discrete cosine transform (DCT) using the fast Fourier transform (FFT)
+### dct
+
+Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
 
 ```
 audio_dct = zaf.dct(audio_signal, dct_type)
@@ -366,7 +381,7 @@ Output:
     audio_dct: audio DCT (number_frequencies,)
 ```
 
-#### Example: compute the 4 different DCTs and compare them to FFTW's DCTs
+Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
 
 ```
 # Load the modules
@@ -431,7 +446,9 @@ plot(dct1_plot, dct2_plot, dct3_plot, dct4_plot, dct1_plot2, dct2_plot2, dct3_pl
 <img src="images/dct.png" width="1000">
 
 
-### Discrete sine transform (DST) using the fast Fourier transform (FFT)
+### dst
+
+Compute the discrete sine transform (DST) using the fast Fourier transform (FFT).
 
 ```
 audio_dst = zaf.dst(audio_signal, dst_type)
@@ -443,7 +460,7 @@ Output:
     audio_dst: audio DST (number_frequencies,)
 ```
 
-#### Example: compute the 4 different DSTs and compare their respective inverses with the original audio
+Example: Compute the 4 different DSTs and compare their respective inverses with the original audio.
 
 ```
 # Load the modules
@@ -494,7 +511,9 @@ plot(dst1_plot, dst2_plot, dst3_plot, dst4_plot, idst1_plot2, idst2_plot2, idst3
 <img src="images/dst.png" width="1000">
 
 
-### Modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT)
+### mdct
+
+Compute the modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT).
 
 ```
 audio_mdct = zaf.mdct(audio_signal, window_function)
@@ -506,7 +525,7 @@ Output:
     audio_mdct: audio MDCT (number_frequencies, number_times)
 ```
 
-#### Example: compute and display the MDCT as used in the AC-3 audio coding format
+Example: Compute and display the MDCT as used in the AC-3 audio coding format.
 
 ```
 # Load the modules
@@ -544,7 +563,9 @@ heatmap!(title = "MDCT (dB)", size = (990, 600))
 <img src="images/mdct.png" width="1000">
 
 
-### Inverse modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT)
+### imdct
+
+Compute the inverse modified discrete cosine transform (MDCT) using the fast Fourier transform (FFT).
 
 ```
 audio_signal = zaf.imdct(audio_mdct, window_function)
@@ -556,7 +577,8 @@ Output:
     audio_signal: audio signal (number_samples,)
 ```
 
-#### Example: verify that the MDCT is perfectly invertible
+Example: Verify that the MDCT is perfectly invertible.
+
 ```
 # Load the modules
 include("./zaf.jl")
