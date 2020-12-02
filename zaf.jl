@@ -26,7 +26,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    11/30/20
+    12/02/20
 """
 module zaf
 
@@ -46,7 +46,7 @@ Compute the short-time Fourier transform (STFT).
 - `step_length::Integer`: the step length in samples.
 - `audio_stft::Complex`: the audio STFT (window_length, number_frames).
 
-# Example: compute the spectrogram from an audio file
+# Example: Compute the spectrogram from an audio file.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -145,7 +145,7 @@ Compute the inverse short-time Fourier transform (STFT).
 - `step_length::Integer`: the step length in samples.
 - `audio_signal::Float`: the audio signal (number_samples,).
 
-# Example: estimate the center and sides signals of a stereo audio file
+# Example: Estimate the center and sides signals of a stereo audio file.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -248,7 +248,7 @@ Compute the constant-Q transform (CQT) kernel.
 - `maximum_frequency::Float`: the maximum frequency in Hz.
 - `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
 
-# Example: compute and display the CQT kernel
+# Example: Compute and display the CQT kernel.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -357,7 +357,7 @@ Compute the constant-Q transform (CQT) spectrogram using a kernel.
 - `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
 - `audio_spectrogram::Float`: the audio spectrogram in magnitude (number_frequencies, number_times).
 
-# Example: compute and display the CQT spectrogram
+# Example: Compute and display the CQT spectrogram.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -432,7 +432,7 @@ end
 """
     audio_chromagram = cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
 
-Compute the constant-Q transform (CQT) chromagram using a kernel
+Compute the constant-Q transform (CQT) chromagram using a kernel.
 
 # Arguments:
 - `audio_signal::Float`: the audio signal (number_samples,).
@@ -442,7 +442,7 @@ Compute the constant-Q transform (CQT) chromagram using a kernel
 - `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
 - `audio_chromagram::Float`: the audio chromagram (number_chromas, number_times).
 
-# Example: Compute and display the CQT chromagram
+# Example: Compute and display the CQT chromagram.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -524,7 +524,7 @@ audio_mfcc = mfcc(audio_signal, sampling_frequency, number_filters, number_coeff
 - `number_coefficients::Integer`: the number of coefficients (without the 0th coefficient).
 - `audio_mfcc::Float`: the audio MFCCs (number_times, number_coefficients).
 
-# Example: compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs
+# Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -622,7 +622,7 @@ function mfcc(
 end
 
 """
-audio_dct = dct(audio_signal, dct_type);
+audio_dct = dct(audio_signal, dct_type)
 
     Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
 
@@ -631,7 +631,7 @@ audio_dct = dct(audio_signal, dct_type);
 - dct_type::Integer`: the DCT type (1, 2, 3, or 4).
 - audio_dct::Float`: the audio DCT (number_frequencies,).
 
-# Example: compute the 4 different DCTs and compare them to FFTW's DCTs
+# Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -774,7 +774,7 @@ function dct(audio_signal, dct_type)
 end
 
 """
-audio_dst = dst(audio_signal, dst_type);
+audio_dst = dst(audio_signal, dst_type)
 
     Compute the discrete sine transform (DST) using the fast Fourier transform (FFT).
 
@@ -783,7 +783,7 @@ audio_dst = dst(audio_signal, dst_type);
 - `dst_type::Integer`: the DST type (1, 2, 3, or 4).
 - `audio_dst::Float`: the audio DST (number_frequencies,)
 
-# Example: compute the 4 different DSTs and compare them to their respective inverses
+# Example: Compute the 4 different DSTs and compare them to their respective inverses.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -921,7 +921,7 @@ audio_mdct = mdct(audio_signal, window_function)
 - `window_function::Float`: the window function (window_length,).
 - `audio_mdct::Float`: the audio MDCT (number_frequencies, number_times).
 
-# Example: compute and display the MDCT as used in the AC-3 audio coding format
+# Example: Compute and display the MDCT as used in the AC-3 audio coding format.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -1020,7 +1020,7 @@ audio_signal = imdct(audio_mdct, window_function)
 - `window_function::Float`: the window function (window_length,).
 - `audio_signal::Float`: the audio signal (number_samples,).
 
-# Example: verify that the MDCT is perfectly invertible
+# Example: Verify that the MDCT is perfectly invertible.
 ```
 # Load the modules
 include("./zaf.jl")
@@ -1138,7 +1138,7 @@ function hamming(window_length, window_sampling = "symmetric")
 end
 
 """
-    plot_object = zaf.sigplot(audio_signal, sampling_frequency, xtick_step=1);
+    plot_object = zaf.sigplot(audio_signal, sampling_frequency, xtick_step=1)
 
 Plot a signal in seconds.
 
@@ -1175,7 +1175,7 @@ function sigplot(audio_signal, sampling_frequency, xtick_step = 1)
 end
 
 """
-    plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step=1, ytick_step=1000);
+    plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step=1, ytick_step=1000)
 
 Display a spectrogram in dB, seconds, and Hz.
 
@@ -1232,7 +1232,7 @@ function specshow(
 end
 
 """
-    plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step=1);
+    plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step=1)
 
 Display a CQT spectrogram in dB and seconds, and Hz.
 
@@ -1294,7 +1294,7 @@ function cqtspecshow(
 end
 
 """
-    plot_object = zaf.cqtchromcshow(audio_chromagram, time_resolution, xtick_step=1);
+    plot_object = zaf.cqtchromcshow(audio_chromagram, time_resolution, xtick_step=1)
 
 Display a CQT chromagram in seconds.
 
