@@ -53,7 +53,7 @@ Output:
     audio_stft: audio STFT (window_length, number_frames)
 ```
 
-Example: Compute and display the spectrogram from an audio file.
+#### Example: Compute and display the spectrogram from an audio file.
 
 ```
 # Load the modules
@@ -113,7 +113,7 @@ Output:
     audio_signal: audio signal (number_samples,)
 ```
 
-Example: Estimate the center and the sides from a stereo audio file.
+#### Example: Estimate the center and the sides from a stereo audio file.
 
 ```
 # Load the modules
@@ -189,7 +189,7 @@ Output:
     cqt_kernel: CQT kernel (number_frequencies, fft_length)
 ```
 
-Example: Compute and display the CQT kernel.
+#### Example: Compute and display the CQT kernel.
 
 ```
 # Load the modules
@@ -230,7 +230,7 @@ Output:
     audio_spectrogram: audio spectrogram in magnitude (number_frequencies, number_times)
 ```
 
-Example: Compute and display the CQT spectrogram.
+#### Example: Compute and display the CQT spectrogram.
 
 ```
 # Load the modules
@@ -281,7 +281,7 @@ Output:
     audio_chromagram: audio chromagram (number_chromas, number_times)
 ```
 
-Example: Compute and display the CQT chromagram.
+#### Example: Compute and display the CQT chromagram.
 
 ```
 # Load the modules
@@ -330,7 +330,7 @@ Output:
     audio_mfcc: audio MFCCs (number_times, number_coefficients)
 ```
 
-Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
+#### Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 
 ```
 # Load the modules
@@ -381,7 +381,7 @@ Output:
     audio_dct: audio DCT (number_frequencies,)
 ```
 
-Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
+#### Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
 
 ```
 # Load the modules
@@ -460,7 +460,7 @@ Output:
     audio_dst: audio DST (number_frequencies,)
 ```
 
-Example: Compute the 4 different DSTs and compare their respective inverses with the original audio.
+#### Example: Compute the 4 different DSTs and compare their respective inverses with the original audio.
 
 ```
 # Load the modules
@@ -525,7 +525,7 @@ Output:
     audio_mdct: audio MDCT (number_frequencies, number_times)
 ```
 
-Example: Compute and display the MDCT as used in the AC-3 audio coding format.
+#### Example: Compute and display the MDCT as used in the AC-3 audio coding format.
 
 ```
 # Load the modules
@@ -577,7 +577,7 @@ Output:
     audio_signal: audio signal (number_samples,)
 ```
 
-Example: Verify that the MDCT is perfectly invertible.
+#### Example: Verify that the MDCT is perfectly invertible.
 
 ```
 # Load the modules
