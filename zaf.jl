@@ -26,7 +26,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    12/02/20
+    12/10/20
 """
 module zaf
 
@@ -382,8 +382,7 @@ audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_re
 
 # Display the CQT spectrogram in dB, seconds, and Hz
 xtick_step = 1
-plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution,
-    minimum_frequency, maximum_frequency, xtick_step)
+plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, xtick_step)
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -400,7 +399,7 @@ function cqtspectrogram(
     # Compute the number of time frames
     number_times = floor(Int, length(audio_signal) / step_length)
 
-    # Get th number of frequency channels and the FFT length
+    # Get the number of frequency channels and the FFT length
     number_frequencies, fft_length = size(cqt_kernel)
 
     # Zero-pad the signal to center the CQT
@@ -1232,7 +1231,7 @@ function specshow(
 end
 
 """
-    plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, maximum_frequency, xtick_step=1)
+    plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, xtick_step=1)
 
 Display a CQT spectrogram in dB and seconds, and Hz.
 
@@ -1241,7 +1240,6 @@ Display a CQT spectrogram in dB and seconds, and Hz.
 - `time_resolution::Integer`: the time resolution in number of time frames per second.
 - `frequency_resolution::Integer`: the frequency resolution in number of frequency channels per semitone.
 - `minimum_frequency::Float`: the minimum frequency in Hz.
-- `maximum_frequency::Float`: the maximum frequency in Hz.
 - `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
 - `plot_object:Plots:` the plot object.
 """
@@ -1250,19 +1248,14 @@ function cqtspecshow(
     time_resolution,
     frequency_resolution,
     minimum_frequency,
-    maximum_frequency,
     xtick_step = 1,
 )
 
     # Get the number of frequency channels and time frames
     number_frequencies, number_times = size(audio_spectrogram)
 
-    # Compute the octave resolution and number of frequencies
+    # Derive the octave resolution
     octave_resolution = 12 * frequency_resolution
-    number_frequencies = round(
-        Int,
-        octave_resolution * log2(maximum_frequency / minimum_frequency),
-    )
 
     # Prepare the tick locations and labels for the x-axis
     xtick_locations =
