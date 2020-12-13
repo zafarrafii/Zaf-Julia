@@ -425,18 +425,18 @@ fftw_dct4 = FFTW.r2r(audio_segment, FFTW.REDFT11)
 fftw_dct4 = fftw_dct4/2 * sqrt(2/window_length)
 
 # Plot the DCT-I, II, III, and IV, FFTW's versions, and their differences (using yformatter because of precision issue in ticks)
-dct1_plot = plot(audio_dct1, title = "DCT-I");
-dct2_plot = plot(audio_dct2, title = "DCT-II");
-dct3_plot = plot(audio_dct3, title = "DCT-III");
-dct4_plot = plot(audio_dct4, title = "DCT-IV");
-dct1_plot2 = plot(audio_dct1, title = "FFTW's DCT-I");
-dct2_plot2 = plot(audio_dct2, title = "FFTW's DCT-II");
-dct3_plot2 = plot(audio_dct3, title = "FFTW's DCT-III");
-dct4_plot2 = plot(audio_dct4, title = "FFTW's DCT-IV");
-diff1_plot = plot(audio_dct1-fftw_dct1, title = "DCT-I - FFTW's DCT-I");
-diff2_plot = plot(audio_dct2-fftw_dct2, title = "DCT-II - FFTW's DCT-II", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
-diff3_plot = plot(audio_dct3-fftw_dct3, title = "DCT-III - FFTW's DCT-III", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
-diff4_plot = plot(audio_dct4-fftw_dct4, title = "DCT-IV - FFTW's DCT-IV", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"));
+dct1_plot = plot(audio_dct1, title = "DCT-I")
+dct2_plot = plot(audio_dct2, title = "DCT-II")
+dct3_plot = plot(audio_dct3, title = "DCT-III")
+dct4_plot = plot(audio_dct4, title = "DCT-IV")
+dct1_plot2 = plot(fftw_dct1, title = "FFTW's DCT-I")
+dct2_plot2 = plot(fftw_dct2, title = "FFTW's DCT-II")
+dct3_plot2 = plot(fftw_dct3, title = "FFTW's DCT-III")
+dct4_plot2 = plot(fftw_dct4, title = "FFTW's DCT-IV")
+diff1_plot = plot(audio_dct1-fftw_dct1, title = "DCT-I - FFTW's DCT-I")
+diff2_plot = plot(audio_dct2-fftw_dct2, title = "DCT-II - FFTW's DCT-II", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"))
+diff3_plot = plot(audio_dct3-fftw_dct3, title = "DCT-III - FFTW's DCT-III", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"))
+diff4_plot = plot(audio_dct4-fftw_dct4, title = "DCT-IV - FFTW's DCT-IV", yformatter = y->string(convert(Int, round(y/1e-16)),"x10⁻¹⁶"))
 plot(dct1_plot, dct2_plot, dct3_plot, dct4_plot, dct1_plot2, dct2_plot2, dct3_plot2, dct4_plot2, 
     diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false, titlefont = 10, 
     layout = (3,4), size = (990, 600), fmt = :png)
@@ -490,18 +490,18 @@ audio_idst3 = zaf.dst(audio_dst3, 2)
 audio_idst4 = zaf.dst(audio_dst4, 4)
 
 # Plot the DST-I, II, III, and IV, their respective inverses, and their differences with the original audio segment
-dst1_plot = plot(audio_dst1, title = "DST-I");
-dst2_plot = plot(audio_dst2, title = "DST-II");
-dst3_plot = plot(audio_dst3, title = "DST-III");
-dst4_plot = plot(audio_dst4, title = "DST-IV");
-idst1_plot2 = plot(audio_idst1, title = "Inverse DST-I (DST-I)");
-idst2_plot2 = plot(audio_idst2, title = "Inverse DST-II (DST-III)");
-idst3_plot2 = plot(audio_idst3, title = "Inverse DST-III (DST-II)");
-idst4_plot2 = plot(audio_idst4, title = "Inverse DST-IV (DST-IV)");
-diff1_plot = plot(audio_idst1-audio_segment, title = "Inverse DST-I - audio segment");
-diff2_plot = plot(audio_idst2-audio_segment, title = "Inverse DST-II - audio segment");
-diff3_plot = plot(audio_idst3-audio_segment, title = "Inverse DST-III - audio segment");
-diff4_plot = plot(audio_idst4-audio_segment, title = "Inverse DST-IV - audio segment");
+dst1_plot = plot(audio_dst1, title = "DST-I")
+dst2_plot = plot(audio_dst2, title = "DST-II")
+dst3_plot = plot(audio_dst3, title = "DST-III")
+dst4_plot = plot(audio_dst4, title = "DST-IV")
+idst1_plot2 = plot(audio_idst1, title = "Inverse DST-I (DST-I)")
+idst2_plot2 = plot(audio_idst2, title = "Inverse DST-II (DST-III)")
+idst3_plot2 = plot(audio_idst3, title = "Inverse DST-III (DST-II)")
+idst4_plot2 = plot(audio_idst4, title = "Inverse DST-IV (DST-IV)")
+diff1_plot = plot(audio_idst1-audio_segment, title = "Inverse DST-I - audio segment")
+diff2_plot = plot(audio_idst2-audio_segment, title = "Inverse DST-II - audio segment")
+diff3_plot = plot(audio_idst3-audio_segment, title = "Inverse DST-III - audio segment")
+diff4_plot = plot(audio_idst4-audio_segment, title = "Inverse DST-IV - audio segment")
 plot(dst1_plot, dst2_plot, dst3_plot, dst4_plot, idst1_plot2, idst2_plot2, idst3_plot2, idst4_plot2, 
     diff1_plot, diff2_plot, diff3_plot, diff4_plot, xlims = (0, window_length), legend = false, titlefont = 10, 
     layout = (3,4), size = (990, 600), fmt = :png)
@@ -545,9 +545,9 @@ audio_signal = mean(audio_signal, dims=2)
 # Compute the Kaiser-Bessel-derived (KBD) window as used in the AC-3 audio coding format
 window_length = 512
 alpha_value = 5
-window_function = kaiser(convert(Int, window_length/2)+1, alpha_value*pi);
-window_function2 = cumsum(window_function[1:convert(Int, window_length/2)]);
-window_function = sqrt.([window_function2; window_function2[convert(Int, window_length/2):-1:1]]./sum(window_function));
+window_function = kaiser(convert(Int, window_length/2)+1, alpha_value*pi)
+window_function2 = cumsum(window_function[1:convert(Int, window_length/2)])
+window_function = sqrt.([window_function2; window_function2[convert(Int, window_length/2):-1:1]]./sum(window_function))
 
 # Compute the MDCT
 audio_mdct = zaf.mdct(audio_signal, window_function)
