@@ -872,7 +872,7 @@ function dst(audio_signal, dst_type)
         # Pre-process the signal to make the DST-III matrix orthogonal
         # (copy the signal to avoid modifying it outside of the function)
         audio_signal = copy(audio_signal)
-        audio_signal = [audio_signal[1:end-1]; audio_signal[end] * sqrt(2)]
+        audio_signal[end] = audio_signal[end] * sqrt(2)
 
         # Compute the DST-III using the FFT
         audio_dst = zeros(4 * window_length)
