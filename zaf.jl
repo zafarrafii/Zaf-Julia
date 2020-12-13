@@ -876,14 +876,12 @@ function dst(audio_signal, dst_type)
 
         # Compute the DST-III using the FFT
         audio_dst = zeros(4 * window_length)
-        audio_dst[2:window_length+1, :] = audio_signal
-        audio_dst[window_length+2:2*window_length, :] =
-            audio_signal[end-1:-1:1, :]
-        audio_dst[2*window_length+2:3*window_length+1, :] = -audio_signal
-        audio_dst[3*window_length+2:4*window_length, :] =
-            -audio_signal[end-1:-1:1, :]
+        audio_dst[2:window_length+1] = audio_signal
+        audio_dst[window_length+2:2*window_length] = audio_signal[end-1:-1:1]
+        audio_dst[2*window_length+2:3*window_length+1] = -audio_signal
+        audio_dst[3*window_length+2:4*window_length] = -audio_signal[end-1:-1:1]
         audio_dst = fft(audio_dst, 1)
-        audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
+        audio_dst = -imag(audio_dst[2:2:2*window_length]) / 4
 
         # Post-processing to make the DST-III matrix orthogonal
         audio_dst = audio_dst * sqrt(2 / window_length)
@@ -895,16 +893,14 @@ function dst(audio_signal, dst_type)
 
         # Compute the DST-IV using the FFT
         audio_dst = zeros(8 * window_length)
-        audio_dst[2:2:2*window_length, :] = audio_signal
-        audio_dst[2*window_length+2:2:4*window_length, :] =
-            audio_signal[end:-1:1, :]
-        audio_dst[4*window_length+2:2:6*window_length, :] = -audio_signal
-        audio_dst[6*window_length+2:2:8*window_length, :] =
-            -audio_signal[end:-1:1, :]
+        audio_dst[2:2:2*window_length] = audio_signal
+        audio_dst[2*window_length+2:2:4*window_length] = audio_signal[end:-1:1]
+        audio_dst[4*window_length+2:2:6*window_length] = -audio_signal
+        audio_dst[6*window_length+2:2:8*window_length] = -audio_signal[end:-1:1]
         audio_dst = fft(audio_dst, 1)
-        audio_dst = -imag(audio_dst[2:2:2*window_length, :]) / 4
+        audio_dst = -imag(audio_dst[2:2:2*window_length]) / 4
 
-        # Post-process the results to make the DST-III matrix orthogonal
+        # Post-process the results to make the DST-IV matrix orthogonal
         audio_dst = audio_dst * sqrt(2 / window_length)
 
     end
@@ -1103,7 +1099,8 @@ function imdct(audio_mdct, window_function)
     for j = 1:number_times
 
         # Recover the signal with the time-domain aliasing cancellation (TDAC) principle
-        audio_signal[i+1:i+window_length] = audio_signal[i+1:i+window_length] + audio_mdct[:, j]
+        audio_signal[i+1:i+window_length] =
+            audio_signal[i+1:i+window_length] + audio_mdct[:, j]
         i = i + step_length
 
     end
