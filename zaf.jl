@@ -26,7 +26,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    12/12/20
+    12/13/20
 """
 module zaf
 
@@ -219,7 +219,8 @@ function istft(audio_stft, window_function, step_length)
     i = 0
     for j = 1:number_times
 
-        # Perform a constant overlap-add (COLA) of the signal (with proper window function and step length)
+        # Perform a constant overlap-add (COLA) of the signal
+        # (with proper window function and step length)
         audio_signal[i+1:i+window_length] =
             audio_signal[i+1:i+window_length] + audio_stft[:, j]
         i = i + step_length
@@ -303,7 +304,8 @@ function cqtkernel(
         # Derive the frequency value in Hz
         frequency_value = minimum_frequency * 2^((i - 1) / octave_resolution)
 
-        # Compute the window length in samples (nearest odd value to center the temporal kernel on 0)
+        # Compute the window length in samples
+        # (nearest odd value to center the temporal kernel on 0)
         window_length =
             2 * round(
                 Int,
@@ -613,7 +615,8 @@ function mfcc(
 
     end
 
-    # Compute the discrete cosine transform of the log magnitude spectrogram mapped onto the mel scale using the filter bank
+    # Compute the discrete cosine transform of the log magnitude spectrogram
+    # mapped onto the mel scale using the filter bank
     audio_mfcc = FFTW.dct(log.(filter_bank * audio_spectrogram .+ eps()), 1)
 
     # Keep only the first coefficients (without the 0th)
@@ -984,7 +987,7 @@ function mdct(audio_signal, window_function)
         )
 
     # Loop over the time frames
-    # (Do the pre and post-processing, and take the FFT in the loop to avoid storing twice longer frames)
+    # (do the pre and post-processing, and take the FFT in the loop to avoid storing twice longer frames)
     i = 0
     for j = 1:number_times
 
@@ -1082,7 +1085,8 @@ function imdct(audio_mdct, window_function)
             ),
         ) / number_frequencies
 
-    # Compute the Fourier transform of the frames using the FFT after pre-processing (zero-pad to get twice the length)
+    # Compute the Fourier transform of the frames using the FFT after pre-processing
+    # (zero-pad to get twice the length)
     audio_mdct = fft(
         [
             audio_mdct .* preprocessing_array
@@ -1091,7 +1095,8 @@ function imdct(audio_mdct, window_function)
         1,
     )
 
-    # Apply the window function to the frames after post-processing (take the real to ensure real values)
+    # Apply the window function to the frames after post-processing
+    # (take the real to ensure real values)
     audio_mdct = 2 * real(audio_mdct .* postprocessing_array) .* window_function
 
     # Loop over the time frames
