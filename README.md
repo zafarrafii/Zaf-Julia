@@ -198,24 +198,6 @@ Output:
 #### Example: Compute and display the mel filterbank.
 
 ```
-# Import the needed modules
-import numpy as np
-import zaf
-import matplotlib.pyplot as plt
-
-# Compute the mel filterbank using some parameters
-sampling_frequency = 44100
-window_length = pow(2, int(np.ceil(np.log2(0.04 * sampling_frequency))))
-number_mels = 128
-mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
-
-# Display the mel filterbank
-plt.figure(figsize=(17, 5))
-plt.imshow(mel_filterbank.toarray(), aspect="auto", cmap="jet", origin="lower")
-plt.title("Mel filterbank")
-plt.xlabel("Number of frequencies")
-plt.ylabel("Number of mels")
-plt.show()
 ```
 
 <img src="images/melfilterbank.png" width="1000">
@@ -240,33 +222,6 @@ Output:
 #### Example: Compute and display the mel spectrogram.
 
 ```
-# Import the needed modules
-import numpy as np
-import scipy.signal
-import zaf
-import matplotlib.pyplot as plt
-
-# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = zaf.wavread("audio_file.wav")
-audio_signal = np.mean(audio_signal, 1)
-
-# Set the parameters for the Fourier analysis
-window_length = pow(2, int(np.ceil(np.log2(0.04*sampling_frequency))))
-window_function = scipy.signal.hamming(window_length, sym=False)
-step_length = int(window_length/2)
-
-# Compute the mel filterbank
-number_mels = 128
-mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
-
-# Compute the mel spectrogram using the filterbank
-mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
-
-# Display the mel spectrogram in in dB, seconds, and Hz
-plt.figure(figsize=(17, 10))
-zaf.melspecshow(mel_spectrogram, len(audio_signal), sampling_frequency, window_length, xtick_step=1)
-plt.title("Mel spectrogram (dB)")
-plt.show()
 ```
 
 <img src="images/melspectrogram.png" width="1000">
@@ -330,11 +285,11 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 Compute the constant-Q transform (CQT) kernel.
 
 ```
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
 Inputs:
     sampling_frequency: sampling frequency in Hz
-    frequency_resolution: frequency resolution in number of frequency channels per semitone
+    octave_resolution: number of frequency channels per octave
     minimum_frequency: minimum frequency in Hz
     maximum_frequency: maximum frequency in Hz
 Output:
@@ -351,12 +306,12 @@ using Plots
 
 # Set the parameters for the CQT kernel
 sampling_frequency = 44100
-frequency_resolution = 2
+octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = sampling_frequency/2
 
 # Compute the CQT kernel
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
 # Display the magnitude CQT kernel
 heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
@@ -371,12 +326,12 @@ heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, s
 Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
 ```
-audio_spectrogram = zaf.cqtspectrogram(audio_signal, sample_rate, time_resolution, cqt_kernel)
+audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 Inputs:
     audio_signal: audio signal (number_samples,)
     sampling_frequency: sampling frequency in Hz
-    time_resolution: time resolution in number of time frames per second
+    time_resolution: number of time frames per second
     cqt_kernel: CQT kernel (number_frequencies, fft_length)
 Output:
     audio_spectrogram: audio spectrogram in magnitude (number_frequencies, number_times)
@@ -397,10 +352,10 @@ audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
 # Compute the CQT kernel using some parameters
-frequency_resolution = 2
+octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
 # Compute the (magnitude) CQT spectrogram using the kernel
 time_resolution = 25
@@ -408,7 +363,7 @@ audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_re
 
 # Display the CQT spectrogram in dB, seconds, and Hz
 xtick_step = 1
-plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, xtick_step)
+plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, octave_resolution, minimum_frequency, xtick_step)
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 
@@ -420,13 +375,13 @@ heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 Compute the constant-Q transform (CQT) chromagram using a kernel.
 
 ```
-audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
+audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, octave_resolution, cqt_kernel)
 
 Inputs:
     audio_signal: audio signal (number_samples,)
     sampling_frequency: sampling frequency in Hz
-    time_resolution: time resolution in number of time frames per second
-    frequency_resolution: frequency resolution in number of frequency channels per semitones
+    time_resolution: number of time frames per second
+    octave_resolution: number of frequency channels per octave
     cqt_kernel: CQT kernel (number_frequencies, fft_length)
 Output:
     audio_chromagram: audio chromagram (number_chromas, number_times)
@@ -447,14 +402,14 @@ audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
 # Compute the CQT kernel using some parameters
-frequency_resolution = 2
+octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
 # Compute the CQT chromagram
 time_resolution = 25
-audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, frequency_resolution, cqt_kernel)
+audio_chromagram = zaf.cqtchromagram(audio_signal, sampling_frequency, time_resolution, octave_resolution, cqt_kernel)
 
 # Display the CQT chromagram in seconds
 xtick_step = 1
