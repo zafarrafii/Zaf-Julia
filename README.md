@@ -179,6 +179,152 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 <img src="images/istft.png" width="1000">
 
 
+### melfilterbank
+
+Compute the mel filterbank.
+
+```
+mel_filterbank = zaf.melfilterbank(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    window_function: window function (window_length,)
+    step_length: step length in samples
+    mel_filterbank: mel filterbank (number_mels, number_frequencies)
+Output:
+    mel_spectrogram: mel spectrogram (number_mels, number_times)
+```
+
+#### Example: Compute and display the mel filterbank.
+
+```
+# Import the needed modules
+import numpy as np
+import zaf
+import matplotlib.pyplot as plt
+
+# Compute the mel filterbank using some parameters
+sampling_frequency = 44100
+window_length = pow(2, int(np.ceil(np.log2(0.04 * sampling_frequency))))
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Display the mel filterbank
+plt.figure(figsize=(17, 5))
+plt.imshow(mel_filterbank.toarray(), aspect="auto", cmap="jet", origin="lower")
+plt.title("Mel filterbank")
+plt.xlabel("Number of frequencies")
+plt.ylabel("Number of mels")
+plt.show()
+```
+
+<img src="images/melfilterbank.png" width="1000">
+
+
+### melspectrogram
+
+Compute the mel spectrogram using a mel filterbank.
+
+```
+mel_filterbank = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
+
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    window_function: window function (window_length,)
+    step_length: step length in samples
+    mel_filterbank: mel filterbank (number_mels, number_frequencies)
+Output:
+    mel_spectrogram: mel spectrogram (number_mels, number_times)
+```
+
+#### Example: Compute and display the mel spectrogram.
+
+```
+# Import the needed modules
+import numpy as np
+import scipy.signal
+import zaf
+import matplotlib.pyplot as plt
+
+# Read the audio signal (normalized) with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = zaf.wavread("audio_file.wav")
+audio_signal = np.mean(audio_signal, 1)
+
+# Set the parameters for the Fourier analysis
+window_length = pow(2, int(np.ceil(np.log2(0.04*sampling_frequency))))
+window_function = scipy.signal.hamming(window_length, sym=False)
+step_length = int(window_length/2)
+
+# Compute the mel filterbank
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Compute the mel spectrogram using the filterbank
+mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
+
+# Display the mel spectrogram in in dB, seconds, and Hz
+plt.figure(figsize=(17, 10))
+zaf.melspecshow(mel_spectrogram, len(audio_signal), sampling_frequency, window_length, xtick_step=1)
+plt.title("Mel spectrogram (dB)")
+plt.show()
+```
+
+<img src="images/melspectrogram.png" width="1000">
+
+
+### mfcc
+
+Compute the mel frequency cepstrum coefficients (MFCCs) using a mel filterbank.
+
+```
+audio_mfcc = zaf.mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
+
+Inputs:
+    audio_signal: audio signal (number_samples,)
+    sampling_frequency: sampling frequency in Hz
+    number_filters: number of filters
+    number_coefficients: number of coefficients (without the 0th coefficient)
+Output:
+    audio_mfcc: audio MFCCs (number_times, number_coefficients)
+```
+
+#### Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
+
+```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Compute the MFCCs with a given number of filters and coefficients
+number_filters = 40
+number_coefficients = 20
+audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
+
+# Compute the delta and delta-delta MFCCs
+audio_dmfcc = diff(audio_mfcc, dims=2)
+audio_ddmfcc = diff(audio_dmfcc, dims=2)
+
+# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
+time_resolution = sampling_frequency*size(audio_mfcc, 2)/length(audio_signal)
+
+# Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
+xtick_step = 1
+plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step); plot!(title = "MFCCs")
+plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
+plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
+plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
+```
+
+<img src="images/mfcc.png" width="1000">
+
+
 ### cqtkernel
 
 Compute the constant-Q transform (CQT) kernel.
@@ -317,59 +463,6 @@ heatmap!(title = "CQT chromagram", size = (990, 300))
 ```
 
 <img src="images/cqtchromagram.png" width="1000">
-
-
-### mfcc
-
-Compute the mel frequency cepstrum coefficients (MFFCs).
-
-```
-audio_mfcc = zaf.mfcc(audio_signal, sample_rate, number_filters, number_coefficients)
-
-Inputs:
-    audio_signal: audio signal (number_samples,)
-    sampling_frequency: sampling frequency in Hz
-    number_filters: number of filters
-    number_coefficients: number of coefficients (without the 0th coefficient)
-Output:
-    audio_mfcc: audio MFCCs (number_times, number_coefficients)
-```
-
-#### Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
-
-```
-# Load the modules
-include("./zaf.jl")
-using .zaf
-using WAV
-using Statistics
-using Plots
-
-# Read the audio signal with its sampling frequency in Hz, and average it over its channels
-audio_signal, sampling_frequency = wavread("audio_file.wav")
-audio_signal = mean(audio_signal, dims=2)
-
-# Compute the MFCCs with a given number of filters and coefficients
-number_filters = 40
-number_coefficients = 20
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
-
-# Compute the delta and delta-delta MFCCs
-audio_dmfcc = diff(audio_mfcc, dims=2)
-audio_ddmfcc = diff(audio_dmfcc, dims=2)
-
-# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
-time_resolution = sampling_frequency*size(audio_mfcc, 2)/length(audio_signal)
-
-# Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
-xtick_step = 1
-plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step); plot!(title = "MFCCs")
-plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
-plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
-plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
-```
-
-<img src="images/mfcc.png" width="1000">
 
 
 ### dct
