@@ -23,10 +23,12 @@ Simply copy the file `zaf.jl` in your working directory, run `include("./zaf.jl"
 Functions:
 - [`stft`](#stft) - Compute the short-time Fourier transform (STFT).
 - [`istft`](#istft) - Compute the inverse STFT.
+- [`melfilterbank`](#melfilterbank) - Compute the mel filterbank.
+- [`melspectrogram`](#melspectrogram) - Compute the mel spectrogram using a mel filterbank.
+- [`mfcc`](#mfcc) - Compute the mel frequency cepstrum coefficients (MFCCs) using a mel filterbank.
 - [`cqtkernel`](#cqtkernel) - Compute the constant-Q transform (CQT) kernel.
 - [`cqtspectrogram`](#cqtspectrogram) - Compute the CQT spectrogram using a CQT kernel.
 - [`cqtchromagram`](#cqtchromagram) - Compute the CQT chromagram using a CQT kernel.
-- [`mfcc`](#mfcc) - Compute the mel frequency cepstrum coefficients (MFCCs).
 - [`dct`](#dct) - Compute the discrete cosine transform (DCT) using the fast Fourier transform (FFT).
 - [`dst`](#dst) - Compute the discrete sine transform (DST) using the FFT.
 - [`mdct`](#mdct) - Compute the modified discrete cosine transform (MDCT) using the FFT.
@@ -36,6 +38,8 @@ Other:
 - `hamming` - Compute the Hamming window.
 - `sigplot` - Plot a signal in seconds.
 - `specshow` - Display a spectrogram in dB, seconds, and Hz.
+- `melspecshow` - Display a mel spectrogram in dB, seconds, and Hz.
+- `mfccshow` - Display MFCCs in seconds.
 - `cqtspecshow` - Display a CQT spectrogram in dB, seconds, and Hz.
 - `cqtchromshow` - Display a CQT chromagram in seconds.
 
