@@ -255,7 +255,20 @@ mel_filterbank = melfilterbank(sampling_frequency, window_length, number_filters
 
 # Example: Compute and display the mel filterbank.
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using Plots
 
+# Compute the mel filterbank using some parameters
+sampling_frequency = 44100
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Display the mel filterbank
+heatmap(mel_filterbank, fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
+    title = "Mel filterbank", xlabel = "Frequency index", ylabel = "Mel index")
 ```
 """
 function melfilterbank(
@@ -267,13 +280,13 @@ function melfilterbank(
     # Compute the minimum and maximum mels
     mininum_mel = 2595 * log10(1 + (sampling_frequency / window_length) / 700)
     maximum_mel = 2595 * log10(1 + (sampling_frequency / 2) / 700)
-
+    
     # Derive the width of the half-overlapping filters in the mel scale (constant)
     filter_width =
-        2 * (maximum_melfrequency - mininum_melfrequency) / (number_filters + 1)
+        2 * (maximum_mel - mininum_mel) / (number_filters + 1)
 
     # Compute the start and end indices of the filters in the mel scale (linearly spaced)
-    filter_indices = [mininum_melfrequency:filter_width/2:maximum_melfrequency;]
+    filter_indices = [mininum_mel:filter_width/2:maximum_mel;]
 
     # Derive the indices of the filters in the linear frequency scale (log spaced)
     filter_indices =
@@ -303,6 +316,9 @@ function melfilterbank(
         )
 
     end
+
+    # Return the output explicitly
+    return mel_filterbank
 
 end
 
