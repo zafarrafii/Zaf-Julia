@@ -184,20 +184,34 @@ plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600
 Compute the mel filterbank.
 
 ```
-mel_filterbank = zaf.melfilterbank(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
 
 Inputs:
-    audio_signal: audio signal (number_samples,)
-    window_function: window function (window_length,)
-    step_length: step length in samples
-    mel_filterbank: mel filterbank (number_mels, number_frequencies)
+    sampling_frequency: sampling frequency in Hz
+    window_length: window length for the Fourier analysis in samples
+    number_mels: number of mel filters
+    
 Output:
-    mel_spectrogram: mel spectrogram (number_mels, number_times)
+    mel_filterbank: mel filterbank (sparse) (number_mels, number_frequencies)
 ```
 
 #### Example: Compute and display the mel filterbank.
 
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using Plots
+
+# Compute the mel filterbank using some parameters
+sampling_frequency = 44100
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Display the mel filterbank
+heatmap(mel_filterbank, fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
+    title = "Mel filterbank", xlabel = "Frequency index", ylabel = "Mel index")
 ```
 
 <img src="images/melfilterbank.png" width="1000">
