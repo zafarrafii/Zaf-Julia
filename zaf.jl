@@ -30,20 +30,14 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    04/06/20
+    04/07/20
 """
 module zaf
 
 using FFTW, SparseArrays, Plots
 
-export stft,
-    istft, cqtkernel, cqtspectrogram, cqtchromagram, mfcc, dct, dst, mdct, imdct
-
-
-
-function a(b)
-c=b+1
-end
+export stft, istft, melfilterbank, melspectrogram, mfcc, cqtkernel, 
+cqtspectrogram, cqtchromagram, dct, dst, mdct, imdct
 
 
 """
@@ -245,6 +239,70 @@ function istft(audio_stft, window_function, step_length)
     # Normalize the signal by the gain introduced by the COLA (if any)
     audio_signal =
         audio_signal / sum(window_function[1:step_length:window_length])
+
+end
+
+"""
+mel_filterbank = melfilterbank(sampling_frequency, window_length, number_filters)
+
+    Compute the mel filterbank.
+
+# Arguments:
+- `sampling_frequency::Float`: the sampling frequency in Hz.
+- `window_length::Integer`: the window length for the Fourier analysis in samples.
+- `number_filters::Integer`: the number of mel filters.
+- `mel_filterbank::Float`: the mel filterbank (number_mels, number_frequencies).
+
+# Example: Compute and display the mel filterbank.
+```
+
+```
+"""
+function melfilterbank(
+    sampling_frequency,
+    window_length,
+    number_filters,
+)
+
+    # Compute the minimum and maximum mels
+    mininum_mel = 2595 * log10(1 + (sampling_frequency / window_length) / 700)
+    maximum_mel = 2595 * log10(1 + (sampling_frequency / 2) / 700)
+
+    # Derive the width of the half-overlapping filters in the mel scale (constant)
+    filter_width =
+        2 * (maximum_melfrequency - mininum_melfrequency) / (number_filters + 1)
+
+    # Compute the start and end indices of the filters in the mel scale (linearly spaced)
+    filter_indices = [mininum_melfrequency:filter_width/2:maximum_melfrequency;]
+
+    # Derive the indices of the filters in the linear frequency scale (log spaced)
+    filter_indices =
+        round.(
+            Int,
+            700 * (10 .^ (filter_indices / 2595) .- 1) * window_length /
+            sampling_frequency,
+        )
+
+    # Initialize the mel filterbank
+    mel_filterbank = zeros(number_filters, convert(Int, window_length / 2))
+
+    # Loop over the filters
+    for i = 1:number_filters
+
+        # Compute the left and right sides of the triangular filters
+        # (this is more accurate than creating triangular filters directly)
+        mel_filterbank[i, filter_indices[i]:filter_indices[i+1]] = range(
+            0,
+            stop = 1,
+            length = filter_indices[i+1] - filter_indices[i] + 1,
+        )
+        mel_filterbank[i, filter_indices[i+1]:filter_indices[i+2]] = range(
+            1,
+            stop = 0,
+            length = filter_indices[i+2] - filter_indices[i+1] + 1,
+        )
+
+    end
 
 end
 
