@@ -30,7 +30,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    04/07/20
+    04/09/20
 """
 module zaf
 
@@ -278,15 +278,15 @@ function melfilterbank(
 )
 
     # Compute the minimum and maximum mels
-    mininum_mel = 2595 * log10(1 + (sampling_frequency / window_length) / 700)
+    minimum_mel = 2595 * log10(1 + (sampling_frequency / window_length) / 700)
     maximum_mel = 2595 * log10(1 + (sampling_frequency / 2) / 700)
     
     # Derive the width of the half-overlapping filters in the mel scale (constant)
     filter_width =
-        2 * (maximum_mel - mininum_mel) / (number_filters + 1)
+        2 * (maximum_mel - minimum_mel) / (number_filters + 1)
 
     # Compute the start and end indices of the filters in the mel scale (linearly spaced)
-    filter_indices = [mininum_mel:filter_width/2:maximum_mel;]
+    filter_indices = [minimum_mel:filter_width/2:maximum_mel;]
 
     # Derive the indices of the filters in the linear frequency scale (log spaced)
     filter_indices =
@@ -319,6 +319,65 @@ function melfilterbank(
 
     # Return the output explicitly
     return mel_filterbank
+
+end
+
+"""
+melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
+
+    Compute the mel spectrogram using a mel filterbank.
+
+# Arguments:
+- `audio_signal::Float`: the audio signal (number_samples,).
+- `window_function::Float`: the window function (window_length,).
+- `step_length::Integer`: the step length in samples.
+- `mel_filterbank::Float`: the mel filterbank (number_mels, number_frequencies).
+- `mel_spectrogram::Float`: the mel spectrogram (number_mels, number_times).
+
+# Example: Compute and display the mel spectrogram.
+```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Set the parameters for the Fourier analysis
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+window_function = zaf.hamming(window_length, "periodic")
+step_length = convert(Int, window_length/2)
+
+# Compute the mel filterbank
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Compute the mel spectrogram using the filterbank
+mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
+
+# Display the mel spectrogram in in dB, seconds, and Hz
+xtick_step = 1
+plot_object = zaf.melspecshow(mel_spectrogram, length(audio_signal), sampling_frequency, window_length, xtick_step)
+heatmap!(title = "Mel spectrogram (dB)", size = (990, 600))
+```
+"""
+function melspectrogram(
+    audio_signal,
+    window_function,
+    step_length,
+    mel_filterbank,
+)
+
+    # Compute the magnitude spectrogram (without the DC component and the mirrored frequencies)
+    audio_stft = zaf.stft(audio_signal, window_function, step_length)
+    audio_spectrogram = abs.(audio_stft[2:convert(Int, length(window_function)/2)+1, :])
+    
+    # Compute the mel spectrogram by using the filterbank
+    mel_spectrogram = mel_filterbank * audio_spectrogram
 
 end
 
@@ -410,7 +469,7 @@ function mfcc(
     for i = 1:number_filters
 
         # Compute the left and right sides of the triangular filters
-        # (linspace is more accurate than triang or bartlett!)
+        # (range is more accurate than triang or bartlett!)
         filter_bank[i, filter_indices[i]:filter_indices[i+1]] = range(
             0,
             stop = 1,
@@ -1307,6 +1366,67 @@ function specshow(
     # Display the spectrogram in dB, seconds, and Hz
     plot_object = heatmap(
         20 * log10.(audio_spectrogram),
+        fillcolor = :jet,
+        legend = false,
+        fmt = :png,
+        xticks = (xtick_locations, xtick_labels),
+        yticks = (ytick_locations, ytick_labels),
+        xlabel = "Time (s)",
+        ylabel = "Frequency (Hz)",
+    )
+
+end
+
+"""
+    plot_object = zaf.melspecshow(mel_spectrogram, number_samples, sampling_frequency, window_length, xtick_step=1)
+
+Display a mel spectrogram in dB, seconds, and Hz.
+
+# Arguments:
+- `mel_spectrogram::Float`: the mel spectrogram (number_mels, number_times).
+- `number_samples::Integer`: the number of samples from the original signal.
+- `sampling_frequency::Float`: the sampling frequency from the original signal in Hz.
+- `window_length::Integer`: the window length from the Fourier analysis in number of samples.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `plot_object:Plots:` the plot object.
+"""
+function melspecshow(
+    mel_spectrogram,
+    number_samples,
+    sampling_frequency,
+    window_length,
+    xtick_step = 1,
+)
+
+    # Get the number of mels and time frames
+    number_mels, number_times = size(mel_spectrogram)
+
+    # Derive the number of seconds and the number of time frames per second
+    number_seconds = number_samples / sampling_frequency
+    time_resolution = number_times / number_seconds
+    
+    # Derive the minimum and maximum mel
+    minimum_mel = 2595 * log10(1 + (sampling_frequency / window_length) / 700)
+    maximum_mel = 2595 * log10(1 + (sampling_frequency / 2) / 700)
+
+    # Compute the mel scale (linearly spaced)
+    mel_scale = range(minimum_mel, stop = maximum_mel, length = number_mels)
+
+    # Derive the Hertz scale (log spaced)
+    hertz_scale = 700 .* (10 .^ (mel_scale / 2595) .- 1)
+    
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations =
+        [xtick_step*time_resolution:xtick_step*time_resolution:number_times;]
+    xtick_labels = convert(Array{Int}, [xtick_step:xtick_step:number_seconds;])
+
+    # Prepare the tick locations and labels for the y-axis
+    ytick_locations = [1:8:number_mels;]
+    ytick_labels = convert(Array{Int}, round.(hertz_scale[1:8:number_mels]))
+
+    # Display the mel spectrogram in dB, seconds, and Hz
+    plot_object = heatmap(
+        20 * log10.(mel_spectrogram),
         fillcolor = :jet,
         legend = false,
         fmt = :png,
