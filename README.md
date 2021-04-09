@@ -236,6 +236,33 @@ Output:
 #### Example: Compute and display the mel spectrogram.
 
 ```
+# Load the modules
+include("./zaf.jl")
+using .zaf
+using WAV
+using Statistics
+using Plots
+
+# Read the audio signal with its sampling frequency in Hz, and average it over its channels
+audio_signal, sampling_frequency = wavread("audio_file.wav")
+audio_signal = mean(audio_signal, dims=2)
+
+# Set the parameters for the Fourier analysis
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+window_function = zaf.hamming(window_length, "periodic")
+step_length = convert(Int, window_length/2)
+
+# Compute the mel filterbank
+number_mels = 128
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Compute the mel spectrogram using the filterbank
+mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
+
+# Display the mel spectrogram in in dB, seconds, and Hz
+xtick_step = 1
+plot_object = zaf.melspecshow(mel_spectrogram, length(audio_signal), sampling_frequency, window_length, xtick_step)
+heatmap!(title = "Mel spectrogram (dB)", size = (990, 600))
 ```
 
 <img src="images/melspectrogram.png" width="1000">
