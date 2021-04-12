@@ -362,7 +362,7 @@ cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_freque
 
 # Display the magnitude CQT kernel
 heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
-    title = "Magnitude CQT kernel", xlabel = "FFT length", ylabel = "CQT frequency")
+    title = "Magnitude CQT kernel", xlabel = "FFT index", ylabel = "CQT index")
 ```
 
 <img src="images/cqtkernel.png" width="1000">
@@ -370,10 +370,10 @@ heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, s
 
 ### cqtspectrogram
 
-Compute the constant-Q transform (CQT) spectrogram using a kernel.
+Compute the constant-Q transform (CQT) spectrogram using a CQT kernel.
 
 ```
-audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
+cqt_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 Inputs:
     audio_signal: audio signal (number_samples,)
@@ -381,7 +381,7 @@ Inputs:
     time_resolution: number of time frames per second
     cqt_kernel: CQT kernel (number_frequencies, fft_length)
 Output:
-    audio_spectrogram: audio spectrogram in magnitude (number_frequencies, number_times)
+    cqt_spectrogram: CQT spectrogram (number_frequencies, number_times)
 ```
 
 #### Example: Compute and display the CQT spectrogram.
@@ -404,13 +404,13 @@ minimum_frequency = 55
 maximum_frequency = 3520
 cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
-# Compute the (magnitude) CQT spectrogram using the kernel
+# Compute the CQT spectrogram using the kernel
 time_resolution = 25
-audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
+cqt_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 # Display the CQT spectrogram in dB, seconds, and Hz
 xtick_step = 1
-plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, octave_resolution, minimum_frequency, xtick_step)
+plot_object = zaf.cqtspecshow(cqt_spectrogram, time_resolution, octave_resolution, minimum_frequency, xtick_step)
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 
