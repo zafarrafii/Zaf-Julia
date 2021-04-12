@@ -298,23 +298,29 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the MFCCs with a given number of filters and coefficients
-number_filters = 40
+# Set the parameters for the Fourier analysis
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+window_function = zaf.hamming(window_length, "periodic")
+step_length = convert(Int, window_length/2)
+
+# Compute the mel filterbank
+number_mels = 40
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Compute the MFCCs using the filterbank
 number_coefficients = 20
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
+audio_mfcc = zaf.mfcc(audio_signal, window_function, step_length, mel_filterbank, number_coefficients)
 
 # Compute the delta and delta-delta MFCCs
 audio_dmfcc = diff(audio_mfcc, dims=2)
 audio_ddmfcc = diff(audio_dmfcc, dims=2)
 
-# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
-time_resolution = sampling_frequency*size(audio_mfcc, 2)/length(audio_signal)
-
 # Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
 xtick_step = 1
-plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step); plot!(title = "MFCCs")
-plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
-plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
+number_samples = length(audio_signal)
+plot_object1 = zaf.mfccshow(audio_mfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "MFCCs")
+plot_object2 = zaf.mfccshow(audio_dmfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "Delta MFCCs")
+plot_object3 = zaf.mfccshow(audio_ddmfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "Delta MFCCs")
 plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 
