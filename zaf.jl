@@ -30,7 +30,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    04/09/20
+    04/12/20
 """
 module zaf
 
@@ -382,16 +382,17 @@ function melspectrogram(
 end
 
 """
-audio_mfcc = mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
+audio_mfcc = mfcc(audio_signal, window_function, step_length, mel_filterbank, number_coefficients)
 
     Compute the mel-frequency cepstral coefficients (MFCCs).
 
 # Arguments:
 - `audio_signal::Float`: the audio signal (number_samples,).
-- `sample_frequency::Float`: the sample frequency in Hz.
-- `number_filters::Integer`: the number of filters.
+- `window_function::Float`: the window function (window_length,).
+- `step_length::Integer`: the step length in samples.
+- `mel_filterbank::Float`: the mel filterbank (number_mels, number_frequencies).
 - `number_coefficients::Integer`: the number of coefficients (without the 0th coefficient).
-- `audio_mfcc::Float`: the audio MFCCs (number_times, number_coefficients).
+- `audio_mfcc::Float`: the audio MFCCs (number_coefficients, number_times).
 
 # Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 ```
@@ -406,86 +407,47 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the MFCCs with a given number of filters and coefficients
-number_filters = 40
+# Set the parameters for the Fourier analysis
+window_length = nextpow(2, ceil(Int, 0.04*sampling_frequency))
+window_function = zaf.hamming(window_length, "periodic")
+step_length = convert(Int, window_length/2)
+
+# Compute the mel filterbank
+number_mels = 40
+mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
+
+# Compute the MFCCs using the filterbank
 number_coefficients = 20
-audio_mfcc = zaf.mfcc(audio_signal, sampling_frequency, number_filters, number_coefficients)
+audio_mfcc = zaf.mfcc(audio_signal, window_function, step_length, mel_filterbank, number_coefficients)
 
 # Compute the delta and delta-delta MFCCs
 audio_dmfcc = diff(audio_mfcc, dims=2)
 audio_ddmfcc = diff(audio_dmfcc, dims=2)
 
-# Compute the time resolution for the MFCCs in number of time frames per second (~ sampling frequency for the MFCCs)
-time_resolution = sampling_frequency*size(audio_mfcc, 2)/length(audio_signal)
-
 # Display the MFCCs, delta MFCCs, and delta-delta MFCCs in seconds
 xtick_step = 1
-plot_object1 = zaf.sigplot(transpose(audio_mfcc), time_resolution, xtick_step); plot!(title = "MFCCs")
-plot_object2 = zaf.sigplot(transpose(audio_dmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
-plot_object3 = zaf.sigplot(transpose(audio_ddmfcc), time_resolution, xtick_step); plot!(title = "Delta MFCCs")
+number_samples = length(audio_signal)
+plot_object1 = zaf.mfccshow(audio_mfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "MFCCs")
+plot_object2 = zaf.mfccshow(audio_dmfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "Delta MFCCs")
+plot_object3 = zaf.mfccshow(audio_ddmfcc, number_samples, sampling_frequency, xtick_step); plot!(title = "Delta MFCCs")
 plot(plot_object1, plot_object2, plot_object3, layout = (3, 1), size = (990, 600))
 ```
 """
 function mfcc(
     audio_signal,
-    sampling_frequency,
-    number_filters,
+    window_function,
+    step_length,
+    mel_filterbank, 
     number_coefficients,
 )
 
-    # Set the parameters for the STFT
-    window_length = nextpow(2, ceil(Int, 0.04 * sampling_frequency))
-    window_function = zaf.hamming(window_length, "periodic")
-    step_length = convert(Int, window_length / 2)
-
     # Compute the magnitude spectrogram (without the DC component and the mirrored frequencies)
     audio_stft = zaf.stft(audio_signal, window_function, step_length)
-    audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length / 2)+1, :])
-
-    # Compute the minimum and maximum frequencies in mels
-    mininum_melfrequency =
-        2595 * log10(1 + (sampling_frequency / window_length) / 700)
-    maximum_melfrequency = 2595 * log10(1 + (sampling_frequency / 2) / 700)
-
-    # Derive the width of the overlapping filters in the mel scale (constant)
-    filter_width =
-        2 * (maximum_melfrequency - mininum_melfrequency) / (number_filters + 1)
-
-    # Compute the indices of the overlapping filters in the mel scale (linearly spaced)
-    filter_indices = [mininum_melfrequency:filter_width/2:maximum_melfrequency;]
-
-    # Derive the indices of the overlapping filters in the linear frequency scale (log spaced)
-    filter_indices =
-        round.(
-            Int,
-            700 * (10 .^ (filter_indices / 2595) .- 1) * window_length /
-            sampling_frequency,
-        )
-
-    # Initialize the filter bank
-    filter_bank = zeros(number_filters, convert(Int, window_length / 2))
-
-    # Loop over the filters
-    for i = 1:number_filters
-
-        # Compute the left and right sides of the triangular filters
-        # (range is more accurate than triang or bartlett!)
-        filter_bank[i, filter_indices[i]:filter_indices[i+1]] = range(
-            0,
-            stop = 1,
-            length = filter_indices[i+1] - filter_indices[i] + 1,
-        )
-        filter_bank[i, filter_indices[i+1]:filter_indices[i+2]] = range(
-            1,
-            stop = 0,
-            length = filter_indices[i+2] - filter_indices[i+1] + 1,
-        )
-
-    end
+    audio_spectrogram = abs.(audio_stft[2:convert(Int, length(window_function)/2)+1, :])
 
     # Compute the discrete cosine transform of the log magnitude spectrogram
     # mapped onto the mel scale using the filter bank
-    audio_mfcc = FFTW.dct(log.(filter_bank * audio_spectrogram .+ eps()), 1)
+    audio_mfcc = FFTW.dct(log.(mel_filterbank * audio_spectrogram .+ eps()), 1)
 
     # Keep only the first coefficients (without the 0th)
     audio_mfcc = audio_mfcc[2:number_coefficients+1, :]
@@ -1434,6 +1396,48 @@ function melspecshow(
         yticks = (ytick_locations, ytick_labels),
         xlabel = "Time (s)",
         ylabel = "Frequency (Hz)",
+    )
+
+end
+
+"""
+    plot_object = zaf.mfccshow(audio_mfcc, number_samples, sampling_frequency, xtick_step=1)
+
+Display MFCCs in seconds.
+
+# Arguments:
+- `audio_mfcc::Float`: the audio MFCC (number_coefficients, number_times).
+- `number_samples::Integer`: the number of samples from the original signal.
+- `sampling_frequency::Integer`: the sampling frequency from the original signal in Hz.
+- `xtick_step::Integer=1`: the step for the x-axis ticks in seconds (default: 1 second).
+- `plot_object:Plots:` the plot object.
+"""
+function mfccshow(audio_mfcc, number_samples, sampling_frequency, xtick_step = 1)
+
+    # Get the number of time frames
+    number_times = size(audio_mfcc, 2)
+
+    # Derive the number of seconds and the number of time frames per second
+    number_seconds = number_samples / sampling_frequency
+    time_resolution = number_times / number_seconds
+
+    # Prepare the tick locations and labels for the x-axis
+    xtick_locations =
+        [xtick_step*time_resolution:xtick_step*time_resolution:number_times;]
+    xtick_labels = convert(
+        Array{Int},
+        [xtick_step:xtick_step:number_times/time_resolution;],
+    )
+
+    # Display the MFCCs in seconds
+    plot_object = heatmap(
+        audio_mfcc,
+        fillcolor = :jet,
+        legend = false,
+        fmt = :png,
+        xticks = (xtick_locations, xtick_labels),
+        xlabel = "Time (s)",
+        ylabel = "Coefficients",
     )
 
 end
