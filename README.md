@@ -210,7 +210,7 @@ number_mels = 128
 mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
 
 # Display the mel filterbank
-heatmap(mel_filterbank, fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
+heatmap(Array(mel_filterbank), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
     title = "Mel filterbank", xlabel = "Frequency index", ylabel = "Mel index")
 ```
 
