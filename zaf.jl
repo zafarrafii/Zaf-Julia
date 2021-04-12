@@ -251,7 +251,7 @@ mel_filterbank = melfilterbank(sampling_frequency, window_length, number_filters
 - `sampling_frequency::Float`: the sampling frequency in Hz.
 - `window_length::Integer`: the window length for the Fourier analysis in samples.
 - `number_filters::Integer`: the number of mel filters.
-- `mel_filterbank::Float`: the mel filterbank (number_mels, number_frequencies).
+- `mel_filterbank::Float`: the mel filterbank (sparse) (number_mels, number_frequencies).
 
 # Example: Compute and display the mel filterbank.
 ```
@@ -267,7 +267,7 @@ number_mels = 128
 mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mels)
 
 # Display the mel filterbank
-heatmap(mel_filterbank, fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
+heatmap(Array(mel_filterbank), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300), 
     title = "Mel filterbank", xlabel = "Frequency index", ylabel = "Mel index")
 ```
 """
@@ -317,8 +317,8 @@ function melfilterbank(
 
     end
 
-    # Return the output explicitly
-    return mel_filterbank
+    # Make the mel filterbank sparse
+    mel_filterbank = sparse(mel_filterbank)
 
 end
 
@@ -475,27 +475,24 @@ using Plots
 
 # Set the parameters for the CQT kernel
 sampling_frequency = 44100
-frequency_resolution = 2
+octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = sampling_frequency/2
 
 # Compute the CQT kernel
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
 # Display the magnitude CQT kernel
 heatmap(abs.(Array(cqt_kernel)), fillcolor = :jet, legend = false, fmt = :png, size = (990, 300),
-    title = "Magnitude CQT kernel", xlabel = "FFT length", ylabel = "CQT frequency")
+    title = "Magnitude CQT kernel", xlabel = "FFT index", ylabel = "CQT index")
 ```
 """
 function cqtkernel(
     sampling_frequency,
-    frequency_resolution,
+    octave_resolution,
     minimum_frequency,
     maximum_frequency,
 )
-
-    # Derive the umber of frequency channels per octave
-    octave_resolution = 12 * frequency_resolution
 
     # Compute the constant ratio of frequency to resolution (= fk/(fk+1-fk))
     quality_factor = 1 / (2^(1 / octave_resolution) - 1)
