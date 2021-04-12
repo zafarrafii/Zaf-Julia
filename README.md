@@ -636,6 +636,7 @@ using Statistics
 using Plots
 
 # Add and use the DSP package to get the kaiser window function
+using Pkg
 Pkg.add("DSP")
 using DSP
 
