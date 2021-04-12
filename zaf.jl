@@ -569,9 +569,9 @@ Compute the constant-Q transform (CQT) spectrogram using a kernel.
 # Arguments:
 - `audio_signal::Float`: the audio signal (number_samples,).
 - `sample_rate::Float`: the sample rate in Hz.
-- `time_resolution::Float`: the time resolution in number of time frames per second.
+- `time_resolution::Float`: the number of time frames per second.
 - `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
-- `audio_spectrogram::Float`: the audio spectrogram in magnitude (number_frequencies, number_times).
+- `cqt_spectrogram::Float`: the CQT spectrogram (number_frequencies, number_times).
 
 # Example: Compute and display the CQT spectrogram.
 ```
@@ -587,18 +587,18 @@ audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
 # Compute the CQT kernel using some parameters
-frequency_resolution = 2
+octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
-cqt_kernel = zaf.cqtkernel(sampling_frequency, frequency_resolution, minimum_frequency, maximum_frequency)
+cqt_kernel = zaf.cqtkernel(sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency)
 
-# Compute the (magnitude) CQT spectrogram using the kernel
+# Compute the CQT spectrogram using the kernel
 time_resolution = 25
 audio_spectrogram = zaf.cqtspectrogram(audio_signal, sampling_frequency, time_resolution, cqt_kernel)
 
 # Display the CQT spectrogram in dB, seconds, and Hz
 xtick_step = 1
-plot_object = zaf.cqtspecshow(audio_spectrogram, time_resolution, frequency_resolution, minimum_frequency, xtick_step)
+plot_object = zaf.cqtspecshow(cqt_spectrogram, time_resolution, octave_resolution, minimum_frequency, xtick_step)
 heatmap!(title = "CQT spectrogram (dB)", size = (990, 600))
 ```
 """
