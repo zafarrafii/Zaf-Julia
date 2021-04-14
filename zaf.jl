@@ -30,7 +30,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    04/12/20
+    04/14/20
 """
 module zaf
 
@@ -53,7 +53,7 @@ Compute the short-time Fourier transform (STFT).
 
 # Example: Compute the spectrogram from an audio file.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -86,9 +86,10 @@ audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 
 # Display the spectrogram in dB, seconds, and Hz
+number_samples = length(audio_signal)
 xtick_step = 1
 ytick_step = 1000
-plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step, ytick_step)
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -152,7 +153,7 @@ Compute the inverse short-time Fourier transform (STFT).
 
 # Example: Estimate the center and sides signals of a stereo audio file.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -255,7 +256,7 @@ mel_filterbank = melfilterbank(sampling_frequency, window_length, number_filters
 
 # Example: Compute and display the mel filterbank.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using Plots
@@ -336,7 +337,7 @@ melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
 
 # Example: Compute and display the mel spectrogram.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -359,9 +360,10 @@ mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mel
 # Compute the mel spectrogram using the filterbank
 mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
 
-# Display the mel spectrogram in in dB, seconds, and Hz
+# Display the mel spectrogram in dB, seconds, and Hz
+number_samples = length(audio_signal)
 xtick_step = 1
-plot_object = zaf.melspecshow(mel_spectrogram, length(audio_signal), sampling_frequency, window_length, xtick_step)
+plot_object = zaf.melspecshow(mel_spectrogram, number_samples, sampling_frequency, window_length, xtick_step)
 heatmap!(title = "Mel spectrogram (dB)", size = (990, 600))
 ```
 """
@@ -396,7 +398,7 @@ audio_mfcc = mfcc(audio_signal, window_function, step_length, mel_filterbank, nu
 
 # Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -464,11 +466,11 @@ Compute the constant-Q transform (CQT) kernel.
 - `frequency_resolution::Integer` the frequency resolution in number of frequency channels per semitone.
 - `minimum_frequency::Float`: the minimum frequency in Hz.
 - `maximum_frequency::Float`: the maximum frequency in Hz.
-- `cqt_kernel::Complex`: the CQT kernel (number_frequencies, fft_length).
+- `cqt_kernel::Complex`: the CQT kernel (sparse) (number_frequencies, fft_length).
 
 # Example: Compute and display the CQT kernel.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using Plots
@@ -553,7 +555,7 @@ function cqtkernel(
     # Make the CQT kernel sparser by zeroing magnitudes below a threshold
     cqt_kernel[abs.(cqt_kernel).<0.01] .= 0
 
-    # Make the CQT kernel sparse by saving it as a compressed sparse column matrix
+    # Make the CQT kernel sparse
     cqt_kernel = sparse(cqt_kernel)
 
     # Get the final CQT kernel by using Parseval's theorem
@@ -575,7 +577,7 @@ Compute the constant-Q transform (CQT) spectrogram using a kernel.
 
 # Example: Compute and display the CQT spectrogram.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -586,7 +588,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the CQT kernel using some parameters
+# Compute the CQT kernel
 octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
@@ -659,7 +661,7 @@ Compute the constant-Q transform (CQT) chromagram using a kernel.
 
 # Example: Compute and display the CQT chromagram.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -670,7 +672,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the CQT kernel using some parameters
+# Compute the CQT kernel
 octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
@@ -736,7 +738,7 @@ audio_dct = dct(audio_signal, dct_type)
 
 # Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -888,7 +890,7 @@ audio_dst = dst(audio_signal, dst_type)
 
 # Example: Compute the 4 different DSTs and compare them to their respective inverses.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -1022,7 +1024,7 @@ audio_mdct = mdct(audio_signal, window_function)
 
 # Example: Compute and display the MDCT as used in the AC-3 audio coding format.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -1122,7 +1124,7 @@ audio_signal = imdct(audio_mdct, window_function)
 
 # Example: Verify that the MDCT is perfectly invertible.
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
