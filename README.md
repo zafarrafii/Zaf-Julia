@@ -62,7 +62,7 @@ Output:
 #### Example: Compute and display the spectrogram from an audio file.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -95,9 +95,10 @@ audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 audio_spectrogram = abs.(audio_stft[2:convert(Int, window_length/2)+1, :])
 
 # Display the spectrogram in dB, seconds, and Hz
+number_samples = length(audio_signal)
 xtick_step = 1
 ytick_step = 1000
-plot_object = zaf.specshow(audio_spectrogram, length(audio_signal), sampling_frequency, xtick_step, ytick_step)
+plot_object = zaf.specshow(audio_spectrogram, number_samples, sampling_frequency, xtick_step, ytick_step)
 heatmap!(title = "Spectrogram (dB)", size = (990, 600))
 ```
 
@@ -122,7 +123,7 @@ Output:
 #### Example: Estimate the center and the sides from a stereo audio file.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -198,7 +199,7 @@ Output:
 #### Example: Compute and display the mel filterbank.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using Plots
@@ -236,7 +237,7 @@ Output:
 #### Example: Compute and display the mel spectrogram.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -259,9 +260,10 @@ mel_filterbank = zaf.melfilterbank(sampling_frequency, window_length, number_mel
 # Compute the mel spectrogram using the filterbank
 mel_spectrogram = zaf.melspectrogram(audio_signal, window_function, step_length, mel_filterbank)
 
-# Display the mel spectrogram in in dB, seconds, and Hz
+# Display the mel spectrogram in dB, seconds, and Hz
+number_samples = length(audio_signal)
 xtick_step = 1
-plot_object = zaf.melspecshow(mel_spectrogram, length(audio_signal), sampling_frequency, window_length, xtick_step)
+plot_object = zaf.melspecshow(mel_spectrogram, number_samples, sampling_frequency, window_length, xtick_step)
 heatmap!(title = "Mel spectrogram (dB)", size = (990, 600))
 ```
 
@@ -287,7 +289,7 @@ Output:
 #### Example: Compute and display the MFCCs, delta MFCCs, and delta-detla MFCCs.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -340,13 +342,13 @@ Inputs:
     minimum_frequency: minimum frequency in Hz
     maximum_frequency: maximum frequency in Hz
 Output:
-    cqt_kernel: CQT kernel (number_frequencies, fft_length)
+    cqt_kernel: CQT kernel (sparse) (number_frequencies, fft_length)
 ```
 
 #### Example: Compute and display the CQT kernel.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using Plots
@@ -387,7 +389,7 @@ Output:
 #### Example: Compute and display the CQT spectrogram.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -398,7 +400,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the CQT kernel using some parameters
+# Compute the CQT kernel
 octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
@@ -437,7 +439,7 @@ Output:
 #### Example: Compute and display the CQT chromagram.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -448,7 +450,7 @@ using Plots
 audio_signal, sampling_frequency = wavread("audio_file.wav")
 audio_signal = mean(audio_signal, dims=2)
 
-# Compute the CQT kernel using some parameters
+# Compute the CQT kernel
 octave_resolution = 24
 minimum_frequency = 55
 maximum_frequency = 3520
@@ -484,7 +486,7 @@ Output:
 #### Example: Compute the 4 different DCTs and compare them to FFTW's DCTs.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -563,7 +565,7 @@ Output:
 #### Example: Compute the 4 different DSTs and compare their respective inverses with the original audio.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -628,7 +630,7 @@ Output:
 #### Example: Compute and display the MDCT as used in the AC-3 audio coding format.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
@@ -681,7 +683,7 @@ Output:
 #### Example: Verify that the MDCT is perfectly invertible.
 
 ```
-# Load the modules
+# Load the needed modules
 include("./zaf.jl")
 using .zaf
 using WAV
