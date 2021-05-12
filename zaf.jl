@@ -30,7 +30,7 @@ This Julia module implements a number of functions for audio signal analysis.
     http://zafarrafii.com
     https://github.com/zafarrafii
     https://www.linkedin.com/in/zafarrafii/
-    04/14/20
+    05/11/20
 """
 module zaf
 
@@ -443,9 +443,9 @@ function mfcc(
     number_coefficients,
 )
 
-    # Compute the magnitude spectrogram (without the DC component and the mirrored frequencies)
+    # Compute the power spectrogram (without the DC component and the mirrored frequencies)
     audio_stft = zaf.stft(audio_signal, window_function, step_length)
-    audio_spectrogram = abs.(audio_stft[2:convert(Int, length(window_function)/2)+1, :])
+    audio_spectrogram = 2 .^ abs.(audio_stft[2:convert(Int, length(window_function)/2)+1, :])
 
     # Compute the discrete cosine transform of the log magnitude spectrogram
     # mapped onto the mel scale using the filter bank
